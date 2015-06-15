@@ -1,0 +1,7 @@
+{
+  "private": true,
+  "name": "exercisedApps_cordova",
+  "devDependencies": {
+    "cordova": "^4.2.0"
+  }
+}

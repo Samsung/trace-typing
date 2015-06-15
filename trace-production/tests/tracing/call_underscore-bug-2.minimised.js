@@ -1,0 +1,3 @@
+setTimeout(function () {
+});
+toString.call()

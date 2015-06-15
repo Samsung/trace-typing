@@ -1,0 +1,7 @@
+{
+  "private": true,
+  "name": "trace-typing-benchmark_cheerio",
+  "devDependencies": {
+    "cheerio": "^0.19.0"
+  }
+}

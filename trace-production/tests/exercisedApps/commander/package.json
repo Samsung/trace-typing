@@ -1,0 +1,7 @@
+{
+  "private": true,
+  "name": "exercisedApps_grunt",
+  "devDependencies": {
+    "commander": "^2.6.0"
+  }
+}

@@ -1,0 +1,25 @@
+<html>
+<head>
+    <title>Trace typing GUI</title>
+    <link rel="stylesheet" href="style-table.css">
+    <link rel="stylesheet" href="node_modules/datatables/media/css/jquery.dataTables.css">
+    <script>
+        // FIXME quick hack to avoid using browserify for npm packages here...
+        function require(n) {
+
+            if (n === 'jquery') {
+                n = "jQuery";
+            }
+            return window[n];
+        }
+    </script>
+    <script src="node_modules/jquery/jquery.js"></script>
+    <script src="node_modules/datatables/media/js/jquery.dataTables.js"></script>
+
+    <script src="showTable.js"></script>
+    <script src="init-table.js"></script>
+</head>
+<body>
+<div id="main"></div>
+</body>
+</html>

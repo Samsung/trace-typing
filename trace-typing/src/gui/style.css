@@ -1,0 +1,65 @@
+#code {
+    margin-left: auto;
+    margin-right: auto;
+    width: 70%;
+}
+
+.CodeMirror {
+    height: auto;
+}
+
+.highlight.warning {
+    background: darkorange;
+}
+
+.highlight.error {
+    background: red;
+}
+
+.highlight.info {
+    background: darkcyan;
+}
+
+.CodeMirror {
+    border: 1px solid black;
+}
+
+.line-message {
+    font-family: arial;
+    font-size: 80%;
+    background: #dddddd;
+    padding: 2px 5px 3px;
+}
+
+.line-message.error {
+    color: red;
+}
+
+.line-message.warning {
+    color: darkorange;
+}
+
+.line-message.info{
+    color: darkcyan;
+}
+
+.line-icon {
+    font-family: monospace;
+    color: black;
+    font-weight: bold;
+    border-radius: 50%;
+    padding: 0 3px;
+    margin-right: 7px;
+}
+
+.line-icon.error {
+    background-color: red;
+}
+
+.line-icon.warning {
+    background-color: darkorange;
+}
+
+.line-icon.info {
+    background-color: darkcyan;
+}

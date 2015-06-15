@@ -1,0 +1,7 @@
+{
+  "private": true,
+  "name": "exercisedApps_lodash",
+  "devDependencies": {
+    "lodash": "^3.0.0"
+  }
+}

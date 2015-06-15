@@ -1,0 +1,7 @@
+{
+  "private": true,
+  "name": "exercisedApps_less",
+  "devDependencies": {
+    "less": "^2.3.1"
+  }
+}

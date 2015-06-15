@@ -1,0 +1,7 @@
+{
+  "private": true,
+  "name": "exercisedApps_underscore",
+  "devDependencies": {
+    "underscore": "^1.7.0"
+  }
+}

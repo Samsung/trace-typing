@@ -1,0 +1,7 @@
+{
+  "private": true,
+  "name": "exercisedApps_optparse",
+  "devDependencies": {
+    "optparse": "^1.0.5"
+  }
+}

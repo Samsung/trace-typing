@@ -1,0 +1,3 @@
+require('./something');
+
+exports.X = {}

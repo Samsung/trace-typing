@@ -1,0 +1,5 @@
+/.idea
+/config.js
+**/*_jalangi_*
+/jalangi-instrumentations
+**/node_modules/*

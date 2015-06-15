@@ -1,0 +1,7 @@
+{
+  "private": true,
+  "name": "trace-typing-benchmark_forever",
+  "devDependencies": {
+    "forever": "^0.14.1"
+  }
+}

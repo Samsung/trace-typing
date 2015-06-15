@@ -1,0 +1,28 @@
+<html>
+<head>
+    <title>Trace typing GUI</title>
+    <link rel="stylesheet" href="node_modules/codemirror/lib/codemirror.css">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="node_modules/jquery-ui/themes/base/jquery-ui.css">
+    <script>
+        // FIXME quick hack to avoid using browserify for npm packages here...
+        function require(n) {
+
+            if (n === 'jquery') {
+                n = "jQuery";
+            }
+            return window[n];
+        }
+    </script>
+    <script src="node_modules/jquery/jquery.js"></script>
+    <script src="node_modules/jquery-ui/jquery-ui.js"></script>
+    <script src="node_modules/codemirror/lib/codemirror.js"></script>
+    <script src="node_modules/codemirror/mode/javascript/javascript.js"></script>
+    <script src="setupCodeMirror.js"></script>
+    <script src="init.js">
+    </script>
+</head>
+<body>
+<div id="code"></div>
+</body>
+</html>

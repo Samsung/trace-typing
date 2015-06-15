@@ -1,0 +1,9 @@
+{
+  "private": true,
+  "dependencies": {
+    "codemirror": "=5.2.0",
+    "datatables": "=1.10.6",
+    "jquery": "=1.9.1",
+    "jquery-ui": "=1.10.5"
+  }
+}

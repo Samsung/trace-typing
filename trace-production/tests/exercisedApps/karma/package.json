@@ -1,0 +1,7 @@
+{
+  "private": true,
+  "name": "trace-typing-benchmark_karma",
+  "devDependencies": {
+    "karma": "^0.12.31"
+  }
+}

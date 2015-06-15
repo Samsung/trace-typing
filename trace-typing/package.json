@@ -1,0 +1,36 @@
+{
+  "name": "trace-typing",
+  "version": "0.1.0",
+  "description": "A test bed for static type systems for dynamic traces.",
+  "directories": {
+    "src": "src",
+    "test": "test"
+  },
+  "dependencies": {
+    "grunt": "=0.4.5",
+    "grunt-contrib-clean": "=0.6.0",
+    "grunt-ts": "=4.0.1",
+    "grunt-tsd": "=0.2.0-beta.1",
+    "mkdirp": "=0.5.0",
+    "ncp": "=2.0.0",
+    "open": "=0.0.5",
+    "temp": "=0.8.1",
+    "trace-production": "git+ssh://git@stash.sisa.samsung.com:7999/~e.andreasen/trace-production.git",
+    "typescript": "=1.5.0-alpha"
+  },
+  "devDependencies": {
+    "grunt-mocha-cli": "=1.12.0",
+    "mocha": "=2.2.4"
+  },
+  "scripts": {
+    "test": "grunt test",
+    "install": "node bin/install_gui.js",
+    "postinstall": "grunt deftyped && grunt build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "ssh://git@stash.sisa.samsung.com:7999/~e.andreasen/trace-typing.git"
+  },
+  "author": "Esben Andreasen",
+  "license": "Apache"
+}

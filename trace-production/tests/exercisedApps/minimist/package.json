@@ -1,0 +1,7 @@
+{
+  "private": true,
+  "name": "exercisedApps_minimist",
+  "devDependencies": {
+    "minimist": "^1.1.0"
+  }
+}
