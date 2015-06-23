@@ -256,25 +256,25 @@ describe("TypedTraceReplayer", function () {
         it("Should handle lazy.js prototype hierarchy", function (done) {
             var config = inferenceConfigs.simpleSubtypingWithUnion;
             var flowConfig = {};
-            testFile("test/fixtures/lazy.js_minimal-prototype-bug.js",
+            testFile("fixtures/lazy.js_minimal-prototype-bug.js",
                 config, flowConfig, done);
         });
         it("Should handle lodash overloading", function (done) {
             var config = inferenceConfigs.simpleSubtypingWithUnion;
             var flowConfig = {};
-            testFile("test/fixtures/lodash_minimal-merge-bug.js",
+            testFile("fixtures/lodash_minimal-merge-bug.js",
                 config, flowConfig, done);
         });
         it("Should handle recursive function types", function (done) {
             var config = inferenceConfigs.simpleSubtypingWithUnion;
             var flowConfig = {};
-            testFile("test/fixtures/recursive_function_types.js",
+            testFile("fixtures/recursive_function_types.js",
                 config, flowConfig, done);
         });
         it("Should handle recursive function calls & object references", function (done) {
             var config = inferenceConfigs.simpleSubtypingWithUnion;
             var flowConfig = {flowInsensitiveVariables: true};
-            testFile("test/fixtures/missing_object_type.js",
+            testFile("fixtures/missing_object_type.js",
                 config, flowConfig, done);
         });
         it("Should handle two invocations of RegExp.test()", function (done) {

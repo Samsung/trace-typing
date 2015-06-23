@@ -9,14 +9,14 @@ describe("Playground smoke tests", function () {
     var playground = new Playground.Playground();
     var stdTarget = new Source("var o = {p1: 42, p2: 'foo'};\nfunction f(o, p){\n return o[p];\n}\nf(o,'p1');\nf(o, 'p2');");
     var stdExperimentName = "typeCheck::ObjectFieldLubUnderSubtyping:FunctionPointwiseLub::flowInsensitiveVariables:contextInsensitiveVariables";
-    var dirTarget = new File("test/fixtures/multiple-files-1/main.js", "test/fixtures/multiple-files-1");
+    var dirTarget = new File("fixtures/multiple-files-1/main.js", "fixtures/multiple-files-1");
     var underscoreDir = "../trace-production/tests/exercisedApps/underscore";
     var underscoreTarget = new File(underscoreDir + "/main.js", underscoreDir);
 
     describe.skip("Loading all three target kinds: ", function () {
         playground.play({target: stdTarget, experimentName: stdExperimentName});
-        //playground.play({target: new File("test/fixtures/non-empty.js"), experimentName: stdExperimentName});
-        //playground.play({target: new Trace("test/fixtures/assign.trace"), experimentName: stdExperimentName});
+        //playground.play({target: new File("fixtures/non-empty.js"), experimentName: stdExperimentName});
+        //playground.play({target: new Trace("fixtures/assign.trace"), experimentName: stdExperimentName});
     });
 
     describe.skip("Various outputs", function () {
@@ -80,10 +80,10 @@ describe("Playground smoke tests", function () {
     });
     describe.skip("Bug hunt", function () {
         this.timeout(30 * 60 * 1000);
-        //var file = "test/fixtures/underscore-singlefile.js";
-        //var file = "test/fixtures/lodash-singlefile.js";
-        //var file = "test/fixtures/lazy.js-singlefile.js";
-        var file = "test/fixtures/debug_source.js";
+        //var file = "fixtures/underscore-singlefile.js";
+        //var file = "fixtures/lodash-singlefile.js";
+        //var file = "fixtures/lazy.js-singlefile.js";
+        var file = "fixtures/debug_source.js";
         playground.play({
             target: new File(file),
             //target: new Source("var v = [[1, 2, 3]];"),

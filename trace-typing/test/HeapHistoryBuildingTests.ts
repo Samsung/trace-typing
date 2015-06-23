@@ -282,21 +282,21 @@ describe("HeapHistoryBuilding", function () {
 
             it.skip("DEBUG SOURCE", function (done) {
                 this.timeout(5 * 60 * 1000);
-                testFile("test/fixtures/debug_source.js", done);
+                testFile("fixtures/debug_source.js", done);
             });
             it("names of functions", function (done) {
-                testFile("test/fixtures/functionNamingScopes.js", done);
+                testFile("fixtures/functionNamingScopes.js", done);
             });
             it("Misc. export/require usages", function (done) {
-                testDir("test/fixtures/multiple-files-2", "requireSomething.js", done);
+                testDir("fixtures/multiple-files-2", "requireSomething.js", done);
             });
             it("coffeescript requires", function (done) {
                 this.timeout(60 * 1000);
-                testDir("test/fixtures/multiple-files-3", "require_lexer.js", done);
+                testDir("fixtures/multiple-files-3", "require_lexer.js", done);
             });
             it("require with nested require", function (done) {
                 this.timeout(60 * 1000);
-                testDir("test/fixtures/multiple-files-4", "require_with_nested_require.js", done);
+                testDir("fixtures/multiple-files-4", "require_with_nested_require.js", done);
             });
         });
     });

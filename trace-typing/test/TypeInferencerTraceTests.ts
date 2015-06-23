@@ -172,14 +172,14 @@ describe("TypeInferencer on traces", function () {
             testFile(file, makeInferenceFunction(done));
         };
         it("underscore-singlefile", function (done) {
-            myTest("test/fixtures/underscore-singlefile.js", done)
+            myTest("fixtures/underscore-singlefile.js", done)
         });
 
         it("underscore_ambiguous-recusive-type", function (done) {
-            myTest("test/fixtures/underscore_ambiguous-recusive-type.js", done)
+            myTest("fixtures/underscore_ambiguous-recusive-type.js", done)
         });
         it.skip("debug_source", function (done) {
-            myTest("test/fixtures/debug_source.js", done)
+            myTest("fixtures/debug_source.js", done)
         });
     });
     describe("On real traces", function () {

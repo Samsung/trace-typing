@@ -399,6 +399,6 @@ describe("SJSTypeChecker unit tests", function () {
 describe.skip("SJS smoke tests", function () {
     this.timeout(60 * 1000);
     it("Should handle optparse", function (done) {
-        testFile("test/fixtures/optparse-singlefile.js", -2, done, {})
+        testFile("fixtures/optparse-singlefile.js", -2, done, {})
     });
 });

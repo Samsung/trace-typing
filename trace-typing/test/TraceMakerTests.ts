@@ -6,7 +6,7 @@ import assert = require("./assert-async-mocha");
 import path = require("path");
 import maker = require("../src/TraceMaker")
 import importer = require("../src/TraceImporter")
-var fixtures = path.resolve("test/fixtures");
+var fixtures = path.resolve("fixtures");
 
 describe("TraceMaker", function () {
     var aproximatePreambleSize = 280;

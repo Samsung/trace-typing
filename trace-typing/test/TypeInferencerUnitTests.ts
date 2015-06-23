@@ -497,7 +497,7 @@ describe("TypeInference unit tests", function () {
 
         describe("Source code that approximate the previous test cases", function () {
             it("should be replayable without crashing", function (done) {
-                TraceMaker.getTraceFromSourceFile("test/fixtures/objectMergeStrategyShowcasing.js", function (e, trace) {
+                TraceMaker.getTraceFromSourceFile("fixtures/objectMergeStrategyShowcasing.js", function (e, trace) {
                     if (e) {
                         done(e);
                         return;
