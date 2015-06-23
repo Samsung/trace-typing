@@ -11,7 +11,7 @@ $ # npm run install-tests # optional
 $ npm test
 ```
  
-The optional `npm run install` installs dependencies for individual tests in ./tests/exercisedApps/. 
+The optional `npm run install-tests` installs dependencies for individual tests in ./tests/exercisedApps/. 
  
 The directory traces and instrumented are emitted to can be configured by creating an ./config.js -- with some inspiration from ./config.default.js and ./config.example.js.
 
