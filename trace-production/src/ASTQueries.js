@@ -71,10 +71,6 @@ function ASTQueries() {
         isDynamicPropertyDeleteName: function isDynamicPropertyDeleteName(sid, iid) {
             return has('dynamicPropertyDeleteNames', sid, iid);
         },
-        getNumberOfArgumentsToMethodCall: function getNumberOfArgumentsToMethodCall(sid, getFieldIID) {
-            var iid = getFieldIID - 2; // according to analysis2.js, the getField call has an iid two higher
-            return get('methodCallArgumentCounts', sid, iid) || 0
-        },
         getFunctionEntryParameterCount: function getFunctionEntryParameterCount(sid, iid) {
             return get('parameterCounts', sid, iid);
         },

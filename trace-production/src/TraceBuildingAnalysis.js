@@ -350,15 +350,7 @@ function TraceBuildingAnalysis(tmpManager, astQueries, contextUtil, coercionUtil
     };
 
     this.getField = function (iid, base, offset, val, isComputed, isOpAssign, isMethodCall) {
-        // console.log("getField(%s, %s, %s, %s, %s, %s, %s, %s)", iid, base, offset, val, isComputed, isOpAssign, isMethodCall);
         var resultTmp = isMethodCall ? tmpManager.getIntermediaryTmp("methodCallBase") : tmpManager.getResultTmp();
-
-        // (sigh...) if this is part of a method call, all the arguments are on top of the stack, and just below them is the base, pop and re-push arguments
-        // (a comptuted method name might come right before the base)
-
-        var numberOfArgumentsToMethodCall = astQueries.getNumberOfArgumentsToMethodCall(J$.sid, iid) /* 0 if not a method call */;
-
-        var argsTmps = tmpManager.popValueTmps(numberOfArgumentsToMethodCall, tmpManager.makeUnknownTemporaryDescriptions(numberOfArgumentsToMethodCall));
 
         if (isComputed) {
             tmpManager.popValueTmp(offset);
@@ -387,8 +379,7 @@ function TraceBuildingAnalysis(tmpManager, astQueries, contextUtil, coercionUtil
             tmpManager.pushValueTmp(objectBaseTmp, ((objectBaseTmp !== baseTmp) ? '*object(' + base + ')*' : base));
         }
         tmpManager.pushValueTmp(resultTmp, val, !isMethodCall);
-        // repush any popped arguments to a method call
-        tmpManager.pushValueTmps(argsTmps, tmpManager.makeUnknownTemporaryDescriptions(numberOfArgumentsToMethodCall));
+
         // console.log("DONE getField(%s, %s, %s, %s, %s, %s, %s, %s)", iid, base, offset, val, isComputed, isOpAssign, isMethodCall);
         return {result: val};
     };

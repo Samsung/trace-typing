@@ -49,9 +49,6 @@ function checkConstant(code, expected) {
 function checkDynamicPropertyDeleteNames(code, expected) {
     checkCode(code, expected, astUtilForTracing.computeDynamicPropertyDeleteNames);
 }
-function checkMethodCallArgumentCounts(code, expected) {
-    checkCode(code, expected, astUtilForTracing.computeMethodCallArgumentCounts);
-}
 function checkFunctionEntryParameterCounts(code, expected) {
     checkCode(code, expected, astUtilForTracing.computeParameterCounts);
 }
@@ -152,26 +149,6 @@ describe('astUtilForTracing', function () {
             checkDynamicPropertyDeleteNames("var o, p; o[++p.p]()", []);
         });
 
-    });
-    describe("computeMethodCallArgumentCounts", function () {
-        it('should handle no calls', function () {
-            checkMethodCallArgumentCounts("1 + 2", []);
-        });
-        it('should handle regular calls', function () {
-            checkMethodCallArgumentCounts("var f; f();", []);
-        });
-        it('should handle zero arguments calls', function () {
-            checkMethodCallArgumentCounts("var o; o.m();", [[17, 0]]);
-        });
-        it('should handle one argument calls', function () {
-            checkMethodCallArgumentCounts("var o; o.m(1);", [[25, 1]]);
-        });
-        it('should handle two arguments calls', function () {
-            checkMethodCallArgumentCounts("var o; o.m(1, 2);", [[33, 2]]);
-        });
-        it('should handle multiple one argument calls', function () {
-            checkMethodCallArgumentCounts("var o; o.m(1); o.m(1);", [[25, 1], [57, 1]]);
-        });
     });
     describe("computeParameterCounts", function () {
         it('should handle no functions', function () {

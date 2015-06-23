@@ -139,25 +139,6 @@ function computeConstantRightArguments(ast) {
 }
 
 /**
- * given an instrumented AST, returns an array of pair of IIDs and argument counts for method calls
- * e.g. `[[18, 3]]`   for `J$.M(18, ......)(..., ..., ...)`
- * @param ast
- */
-function computeMethodCallArgumentCounts(ast) {
-    var methodCallArgumentCounts = [];
-    var methodCallArgumentCountsVisitor = {
-        "CallExpression": function (node) {
-            // simple version: variable update
-            if (isJalangiCall(node.callee, "M")) {
-                methodCallArgumentCounts.push([getIIDOfJalangiCall(node.callee), node.arguments.length]);
-            }
-        }
-    };
-    transformAst(ast, undefined, methodCallArgumentCountsVisitor, astUtil.CONTEXT.RHS);
-    return methodCallArgumentCounts;
-}
-
-/**
  * given an instrumented AST, returns an array of pairs of IIDS and number of parameters of the enclosing function
  * e.g. `[[18, 3]]`   for `function(..., ..., ...){...; J$.Fe(18, ...); ...;}`
  * @param ast
@@ -322,7 +303,6 @@ exportObj.computeNonLastCommaExpressions = computeNonLastCommaExpressions;
 exportObj.computeLazyBooleanLocations = computeLazyBooleanLocations;
 exportObj.computeConstantRightArguments = computeConstantRightArguments;
 exportObj.computeDynamicPropertyDeleteNames = computeDynamicPropertyDeleteNames;
-exportObj.computeMethodCallArgumentCounts = computeMethodCallArgumentCounts;
 exportObj.computeParameterCounts = computeParameterCounts;
 exportObj.computeVoidedExpressions = computeVoidedExpressions;
 exportObj.computeGlobalVariableDeclarations = computeGlobalVariableDeclarations;

@@ -50,7 +50,6 @@ function run(target, exportFileOrFunction, debug) {
             lazyBooleanLocations: astUtilForTracing.computeLazyBooleanLocations((instAST)),
             constantRightArguments: astUtilForTracing.computeConstantRightArguments((instAST)),
             dynamicPropertyDeleteNames: astUtilForTracing.computeDynamicPropertyDeleteNames((instAST)),
-            methodCallArgumentCounts: astUtilForTracing.computeMethodCallArgumentCounts((instAST)),
             parameterCounts: astUtilForTracing.computeParameterCounts((instAST)),
             voidedExpressions: astUtilForTracing.computeVoidedExpressions((instAST)),
             globalVariableDeclarations: astUtilForTracing.computeGlobalVariableDeclarations((instAST)),
