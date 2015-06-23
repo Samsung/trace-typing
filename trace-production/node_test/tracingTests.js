@@ -110,7 +110,9 @@ var allTests = {
         'declarations',
         'functionDeclarations',
         'oneShotClosure',
-        'SJS-map-object-literals'
+        'SJS-map-object-literals',
+        'trivialAssignment',
+        'typeofConstant'
     ],
     'multiple files': [
         "multi1"
