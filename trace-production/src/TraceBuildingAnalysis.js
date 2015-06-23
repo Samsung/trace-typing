@@ -500,7 +500,7 @@ function TraceBuildingAnalysis(tmpManager, astQueries, contextUtil, coercionUtil
 
     this.scriptEnter = function (iid, val, origFileName, dis, module, require) {
         astQueries.registerASTInfo(J$.sid, J$.ast_info /* copy before it is overridden! */);
-        traceBuilder.makeMoveStatement(tmpManager.getGlobalTmp(), nativeSynthesisManager.allocate(global, [], undefined, iid), iid);
+        traceBuilder.makeMoveStatement(tmpManager.getGlobalTmp(), nativeSynthesisManager.allocate(global, ['Intl' /* TODO Ignore for now: full of special getters! */], undefined, iid), iid);
         traceBuilder.makeMoveStatement(tmpManager.getThisTmp(), nativeSynthesisManager.allocate(dis, [], undefined, iid), iid);
         if (NODEJS_ENVIRONMENT) {
             traceBuilder.makeMoveStatement(tmpManager.getVarTmp('global'), tmpManager.getGlobalTmp(), iid);
