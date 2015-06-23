@@ -65,9 +65,6 @@ function ASTQueries() {
         isLazyBooleanResult: function isLazyBooleanResult(sid, iid, result) {
             return get('lazyBooleanLocations', sid, iid) === !!result;
         },
-        isRightArgumentConstant: function isRightArgumentConstant(sid, iid) {
-            return has('constantRightArguments', sid, iid);
-        },
         isDynamicPropertyDeleteName: function isDynamicPropertyDeleteName(sid, iid) {
             return has('dynamicPropertyDeleteNames', sid, iid);
         },

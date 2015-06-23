@@ -20,7 +20,6 @@ var assert = require("assert"),
     astUtilForTracing = require("../src/astUtilForTracing.js"),
     computeNonLastCommaExpressions = astUtilForTracing.computeNonLastCommaExpressions,
     computeLazyBooleanLocations = astUtilForTracing.computeLazyBooleanLocations,
-    computeConstantRightArguments = astUtilForTracing.computeConstantRightArguments,
     instrumentCode = require("../src/JalangiInterface").instrumentCode,
     temp = require('temp');
 
@@ -42,9 +41,6 @@ function checkComma(code, expected) {
 }
 function checkLazyBoolean(code, expected) {
     checkCode(code, expected, computeLazyBooleanLocations);
-}
-function checkConstant(code, expected) {
-    checkCode(code, expected, computeConstantRightArguments);
 }
 function checkDynamicPropertyDeleteNames(code, expected) {
     checkCode(code, expected, astUtilForTracing.computeDynamicPropertyDeleteNames);
@@ -99,36 +95,6 @@ describe('astUtilForTracing', function () {
         });
         it('should handle nested lazies', function () {
             checkLazyBoolean("1 && (2 || 3);", [[16, false], [8, true]]);
-        });
-    });
-
-    describe("computeConstantRightArguments", function () {
-        it('should handle no constants', function () {
-            checkConstant("var i; 3+4+5", []);
-        });
-        it('should handle fake constants', function () {
-            checkConstant("var i; 1 + 1", []);
-        });
-        it('should handle i++', function () {
-            checkConstant("var i; i++", [26, 18]);
-        });
-        it('should handle i++ with ref', function () {
-            checkConstant("var i; j++", [26, 18]);
-        });
-        it('should handle i--', function () {
-            checkConstant("var i; i--", [26, 18]);
-        });
-        it('should handle ++i', function () {
-            checkConstant("var i; ++i", [18]);
-        });
-        it('should handle --i', function () {
-            checkConstant("var i; --i", [18]);
-        });
-        it('should handle multiple i++', function () {
-            checkConstant("var i; i++; i++;", [26, 18, 50, 42]);
-        });
-        it('should handle o.i++', function () {
-            checkConstant("var o; o.i++", [10, 17]);
         });
     });
 

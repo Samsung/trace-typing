@@ -16,19 +16,9 @@
 var jalangiInterface = require("../src/JalangiInterface");
 var astUtil = jalangiInterface.astUtil;
 function isJalangiCall(potentialJalangiCall, callType) {
-    return isDirectJalangiCall(potentialJalangiCall, callType) || isIndirectJalangiCall(potentialJalangiCall, callType) || isPrefixOperatorJalangiCall(potentialJalangiCall, callType);
+    return isDirectJalangiCall(potentialJalangiCall, callType) || isIndirectJalangiCall(potentialJalangiCall, callType);
 }
 
-function isPrefixOperatorJalangiCall(potentialJalangiCall, callType) {
-    var isAssignment = potentialJalangiCall !== undefined && potentialJalangiCall.type === 'AssignmentExpression';
-    if (!isAssignment)
-        return false;
-    var isAssignmentCall = isJalangiCall(potentialJalangiCall.right, 'W');
-    if (!isAssignmentCall)
-        return false;
-    var potentialPreOrPostfix = potentialJalangiCall.right.arguments[2];
-    return isJalangiPreOrPostfixOperation(potentialPreOrPostfix);
-}
 function isIgnoreWrappedJalangiCall(potentialJalangiCall) {
     if (isDirectJalangiCall(potentialJalangiCall, 'I')) {
         return isJalangiCall(potentialJalangiCall.arguments[0].consequent.right);
@@ -78,8 +68,6 @@ function getActualJalangiCall(jalangiCall) {
         return jalangiCall;
     } else if (isIndirectJalangiCall(jalangiCall)) {
         return jalangiCall.callee;
-    }else if(isPrefixOperatorJalangiCall(jalangiCall)){
-        return jalangiCall.right;
     }
     throw new Error("Not a Jalangi call at all?!?! " + jalangiCall);
 }
@@ -91,32 +79,8 @@ function getArgumentsToJalangiCall(jalangiCall) {
 function getIIDOfJalangiCall(jalangiCall) {
     return getArgumentsToJalangiCall(jalangiCall)[0].value;
 }
-
-function isJalangiPreOrPostfixOperation(potentialJalangiCall) {
-    // simple version: variable update
-    var isJalangiBinary = isJalangiCall(potentialJalangiCall, 'B')
-    if (isJalangiBinary) {
-        var argumentsToBinaryCall = getArgumentsToJalangiCall(potentialJalangiCall);
-        var potentialConstant = unwrapJalangiIgnoreAndAssignCall(argumentsToBinaryCall[3]);
-        var isConstantRightArgument = potentialConstant.type === "Literal" && potentialConstant.value === 1;
-        if (isConstantRightArgument) {
-            return true;
-        }
-    }
-    // complex version: property update
-    var isJalangiHiddenBinary = isJalangiCall(potentialJalangiCall.callee, "A")
-    if (isJalangiHiddenBinary) {
-        var potentialConstant = unwrapJalangiIgnoreAndAssignCall(potentialJalangiCall.arguments[0]);
-        var isConstantRightArgument = potentialConstant.type === "Literal" && potentialConstant.value === 1;
-        if (isConstantRightArgument) {
-            return true;
-        }
-    }
-    return false;
-}
 exports.isJalangiCall = isJalangiCall;
 exports.unwrapJalangiIgnoreAndAssignCall = unwrapJalangiIgnoreAndAssignCall;
 exports.getIIDOfJalangiCall = getIIDOfJalangiCall;
 exports.getArgumentsToJalangiCall = getArgumentsToJalangiCall;
 exports.isIndirectJalangiCall = isIndirectJalangiCall;
-exports.isJalangiPreOrPostfixOperation = isJalangiPreOrPostfixOperation;

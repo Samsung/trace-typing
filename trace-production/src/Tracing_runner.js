@@ -48,7 +48,6 @@ function run(target, exportFileOrFunction, debug) {
     function makeASTInfo(instAST) {
         var astInfo = {
             lazyBooleanLocations: astUtilForTracing.computeLazyBooleanLocations((instAST)),
-            constantRightArguments: astUtilForTracing.computeConstantRightArguments((instAST)),
             dynamicPropertyDeleteNames: astUtilForTracing.computeDynamicPropertyDeleteNames((instAST)),
             parameterCounts: astUtilForTracing.computeParameterCounts((instAST)),
             voidedExpressions: astUtilForTracing.computeVoidedExpressions((instAST)),

@@ -527,14 +527,7 @@ function TraceBuildingAnalysis(tmpManager, astQueries, contextUtil, coercionUtil
             var objectTmp = coercionUtil.toObject(left, leftTmp, iid);
             traceBuilder.makeDeleteStatement(objectTmp, right, iid);
         } else {
-            if (astQueries.isRightArgumentConstant(J$.sid, iid)) {
-                // i++, i--, ++i, --i are all desugared to have a addition/subtraction with a constant that is not on the shadow stack
-                // (as is the property access variant)
-
-                // by desugaring: toNumber has already been performed, no need to try to coerce again
-
-                tmpManager.popValueTmp(left);
-            } else if (isSwitchCaseComparison) {
+            if (isSwitchCaseComparison) {
                 // this is a synthetic comparison done by Jalangi
                 // the switch target has been popped long ago, but we do not care about it anymore as switch cases is a non-coercing equality check
 

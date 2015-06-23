@@ -121,24 +121,6 @@ function computeDynamicPropertyDeleteNames(ast) {
 }
 
 /**
- * given an instrumented AST, returns an array of IIDs for recovering the addition location of desugared i++, i--, ++i, --i (and the property-access variants)
- * e.g. `[18]`   for `... J$.B(18, '+', ..., 1) ...`  as a part of desugaring ++i
- * @param ast
- */
-function computeConstantRightArguments(ast) {
-    var constantRightArgumentLocations = [];
-    var visitorConstantRightArgumentLocationsPre = {
-        "CallExpression": function (node) {
-            if (jalangiASTQueries.isJalangiPreOrPostfixOperation(node)) {
-                constantRightArgumentLocations.push(getIIDOfJalangiCall(node))
-            }
-        }
-    };
-    transformAst(ast, undefined, visitorConstantRightArgumentLocationsPre, astUtil.CONTEXT.RHS);
-    return constantRightArgumentLocations;
-}
-
-/**
  * given an instrumented AST, returns an array of pairs of IIDS and number of parameters of the enclosing function
  * e.g. `[[18, 3]]`   for `function(..., ..., ...){...; J$.Fe(18, ...); ...;}`
  * @param ast
@@ -301,7 +283,6 @@ if (typeof exports === 'undefined') {
 // TODO merge these queries to only do a single AST traversal...
 exportObj.computeNonLastCommaExpressions = computeNonLastCommaExpressions;
 exportObj.computeLazyBooleanLocations = computeLazyBooleanLocations;
-exportObj.computeConstantRightArguments = computeConstantRightArguments;
 exportObj.computeDynamicPropertyDeleteNames = computeDynamicPropertyDeleteNames;
 exportObj.computeParameterCounts = computeParameterCounts;
 exportObj.computeVoidedExpressions = computeVoidedExpressions;
