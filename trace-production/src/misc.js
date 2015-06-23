@@ -23,6 +23,9 @@
 if (typeof Set !== 'function') {
     assert(false, "Requires ES6 Set. For node: run with --harmony. For browsers: use a modern one.")
 }
+if (new Set().forEach === undefined) {
+    assert(false, "Requires ES6 Set.forEach. For node, use v0.12+. For browsers: use a modern one.")
+}
 
 function assert(check, message, onlyWarn) {
     if (!check) {
