@@ -18,7 +18,6 @@
 
 var assert = require("assert"),
     astUtilForTracing = require("../src/astUtilForTracing.js"),
-    computeNonLastCommaExpressions = astUtilForTracing.computeNonLastCommaExpressions,
     computeLazyBooleanLocations = astUtilForTracing.computeLazyBooleanLocations,
     instrumentCode = require("../src/JalangiInterface").instrumentCode,
     temp = require('temp');
@@ -36,9 +35,6 @@ function checkCode(code, expected, analysis) {
     assert.deepEqual(actual, expected);
 }
 
-function checkComma(code, expected) {
-    checkCode(code, expected, computeNonLastCommaExpressions);
-}
 function checkLazyBoolean(code, expected) {
     checkCode(code, expected, computeLazyBooleanLocations);
 }

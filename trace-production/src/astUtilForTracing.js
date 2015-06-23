@@ -26,29 +26,6 @@ var isJalangiCall = jalangiASTQueries.isJalangiCall,
     getIIDOfJalangiCall = jalangiASTQueries.getIIDOfJalangiCall,
     getArgumentsToJalangiCall = jalangiASTQueries.getArgumentsToJalangiCall,
     isIndirectJalangiCall = jalangiASTQueries.isIndirectJalangiCall;
-/**
- * given an instrumented AST, returns an array of IIDs corresponding to "non-last comma expressions,"
- * e.g. expr1 and expr2 in `(expr1, expr2, expr3)`
- * @param ast
- */
-function computeNonLastCommaExpressions(ast) {
-    var nonLastCommaExpressions = [];
-    var visitorNonLastCommaExpressionsPre = {
-        "SequenceExpression": function (node) {
-            var expressions = node.expressions;
-
-            for (var i = 0; i < expressions.length - 1 /* ignore the last! */; i++) {
-                var potentialJalangiCall = unwrapJalangiIgnoreAndAssignCall(expressions[i]);
-                if (isJalangiCall(potentialJalangiCall)) {
-                    // we have a call to Jalangi as a non-last member of a comma expression
-                    nonLastCommaExpressions.push(getIIDOfJalangiCall(potentialJalangiCall));
-                }
-            }
-        }
-    };
-    transformAst(ast, undefined, visitorNonLastCommaExpressionsPre, astUtil.CONTEXT.RHS);
-    return nonLastCommaExpressions;
-}
 
 /**
  * given an instrumented AST, returns an array of pairs of IIDs and booleans for recovering the locations of the desugared && and || expresions
@@ -281,7 +258,6 @@ if (typeof exports === 'undefined') {
 }
 
 // TODO merge these queries to only do a single AST traversal...
-exportObj.computeNonLastCommaExpressions = computeNonLastCommaExpressions;
 exportObj.computeLazyBooleanLocations = computeLazyBooleanLocations;
 exportObj.computeDynamicPropertyDeleteNames = computeDynamicPropertyDeleteNames;
 exportObj.computeParameterCounts = computeParameterCounts;
