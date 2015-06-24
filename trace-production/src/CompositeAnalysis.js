@@ -228,5 +228,15 @@ function CompositeAnalysis(analysis1, analysis2) {
             analysis2.endExpression();
         }
     };
+
+
+    this._with = function(iid, val){
+        if (analysis1._with) {
+            analysis1._with(iid, val);
+        }
+        if (analysis2._with) {
+            analysis2._with(iid, val);
+        }
+    }
 }
 exports.CompositeAnalysis = CompositeAnalysis;

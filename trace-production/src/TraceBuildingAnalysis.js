@@ -609,6 +609,11 @@ function TraceBuildingAnalysis(tmpManager, astQueries, contextUtil, coercionUtil
 
     this.endExecution = function () {
     }
+
+    this._with = function(iid, val){
+        console.warn("%s: Ignoring with-statement!!!", J$.iidToLocation(J$.getGlobalIID(iid)));
+        tmpManager.popEndExpressionValueTmp();
+    }
 }
 
 exports.TraceBuildingAnalysis = TraceBuildingAnalysis;
