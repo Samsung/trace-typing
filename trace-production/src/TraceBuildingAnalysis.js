@@ -495,8 +495,18 @@ function TraceBuildingAnalysis(tmpManager, astQueries, contextUtil, coercionUtil
         traceBuilder.makeMoveStatement(tmpManager.getThisTmp(), nativeSynthesisManager.allocate(dis, [], undefined, iid), iid);
         if (NODEJS_ENVIRONMENT) {
             traceBuilder.makeMoveStatement(tmpManager.getVarTmp('global'), tmpManager.getGlobalTmp(), iid);
-            traceBuilder.makeMoveStatement(tmpManager.getVarTmp('module'), nativeSynthesisManager.allocate(module, undefined, undefined, iid), iid);
-            traceBuilder.makeMoveStatement(tmpManager.getVarTmp('require'), nativeSynthesisManager.allocate(require, ['paths', 'cache'], undefined, iid), iid);
+            var moduleTmp = tmpManager.getVarTmp('module');
+            if (isPrimitive(module)) {
+                traceBuilder.makePrimitiveStatement(module, moduleTmp, iid);
+            } else {
+                traceBuilder.makeMoveStatement(moduleTmp, nativeSynthesisManager.allocate(module, undefined, undefined, iid), iid);
+            }
+            var requireTmp = tmpManager.getVarTmp('require');
+            if (isPrimitive(require)) {
+                traceBuilder.makePrimitiveStatement(require, requireTmp, iid);
+            } else {
+                traceBuilder.makeMoveStatement(requireTmp, nativeSynthesisManager.allocate(require, ['paths', 'cache'], undefined, iid), iid);
+            }
             var filenameTmp = tmpManager.getIntermediaryTmp('__filename');
             var dirnameTmp = tmpManager.getIntermediaryTmp('__dirname');
             traceBuilder.makePrimitiveStatement("*__filename*" /* some string */, filenameTmp, iid);
@@ -504,7 +514,7 @@ function TraceBuildingAnalysis(tmpManager, astQueries, contextUtil, coercionUtil
             traceBuilder.makeMoveStatement(tmpManager.getVarTmp('__filename'), filenameTmp, iid);
             traceBuilder.makeMoveStatement(tmpManager.getVarTmp('__dirname'), dirnameTmp, iid);
             var exportsTmp = tmpManager.getIntermediaryTmp('__exports');
-            traceBuilder.makeFieldReadStatement(tmpManager.getVarTmp('module'), 'exports', exportsTmp, iid);
+            traceBuilder.makeFieldReadStatement(moduleTmp, 'exports', exportsTmp, iid);
             traceBuilder.makeMoveStatement(tmpManager.getVarTmp('exports'), exportsTmp, iid);
         }
         moduleManager = new ModuleManager(module);
