@@ -165,7 +165,7 @@ function ignore(test) {
         '../unitTestsFromJalangi/monkeypatch'
     ];
     var forbiddenSubstrings = [
-        '/exercisedApps',
+        //'/exercisedApps',
         '/bower', // Performance issue: > 5 minutes. Lots of time spent in instrumentation
         '/browserify', // Jalangi issue#18: "TypeError: Function.prototype.apply was called on undefined, which is a undefined and not a function"
         '/cheerio', // syntactic getter/setter
@@ -178,6 +178,7 @@ function ignore(test) {
         '/karma', // Performance issue: > 5 minutes. Lots of time spent in instrumentation
         '/less', // Analysis bug: Causes "TypeError: Cannot read property 'css' of undefined", but empty Jalangi analysis is fine...
         '/pm2', // syntactic getter/setter
+        '/escodegen', // "Fatal error in ../deps/v8/src/handles.h, line 48" !!!!!!!!!!!!!!!
         'getter',
         'setter',
         'eval',
