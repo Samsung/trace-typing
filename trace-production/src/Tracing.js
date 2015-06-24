@@ -20,7 +20,6 @@
  * The Main analysis for recording execution traces.
  */
 var CoercionUtil = require("./CoercionUtil").CoercionUtil,
-    FakeCoercionUtil = require("./CoercionUtil").FakeCoercionUtil,
     TraceBuilder = require("./TraceBuilder").TraceBuilder,
     IIDAwareTraceBuilder = require("./TraceBuilder").IIDAwareTraceBuilder,
     CompositeAnalysis = require("./CompositeAnalysis").CompositeAnalysis,
@@ -29,10 +28,8 @@ var CoercionUtil = require("./CoercionUtil").CoercionUtil,
     coerceTypes = require("./traceElements").coerceTypes,
     TraceBuildingAnalysis = require("./TraceBuildingAnalysis").TraceBuildingAnalysis,
     ASTQueries = require("./ASTQueries"),
-    fakes = require("./fakes"),
     TraceCollectionController = require("./TraceCollectionController"),
     NativeSynthesisManager = require("./NativeSynthesisManager"),
-    fakes = require("./fakes"),
     fs = require("fs"),
     temp = require("temp");
 
@@ -100,20 +97,15 @@ function reset() {
     })();
 
     var traceBuilder = new TraceBuilder(statementStreamer.write);
-    // traceBuilder = new fakes.FakeTraceBuilder();
 
     var nativeSynthesisManager = new NativeSynthesisManager(traceBuilder);
     var coercionCounter = 0;
     var coercionUtil = new CoercionUtil(function () {
         return temporaryManager.getIntermediaryTmp("coercion" + coercionCounter++);
     }, traceBuilder, coerceTypes, nativeSynthesisManager);
-    // coercionUtil = new fakes.FakeCoercionUtil();
-
-    // contextAnalysis = new fakes.FakeContextAnalysis();
 
     var temporaryManager = new TemporaryManager(contextAnalysis.contextState, astQueries, traceBuilder, nativeSynthesisManager);
     nativeSynthesisManager.init(temporaryManager);
-    // temporaryManager = new fakes.FakeTemporaryManager();
 
     var traceCollectionController = new TraceCollectionController.TraceCollectionController(temporaryManager, statementStreamer.end, statementsFile, contextAnalysis.contextState);
 
