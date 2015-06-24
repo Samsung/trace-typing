@@ -114,7 +114,8 @@ var allTests = {
         'trivialAssignment',
         'typeofConstant',
         'try-catch-var',
-        'empty'
+        'empty',
+        'Function'
     ],
     'multiple files': [
         "multi1"
