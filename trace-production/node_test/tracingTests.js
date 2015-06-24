@@ -113,7 +113,8 @@ var allTests = {
         'SJS-map-object-literals',
         'trivialAssignment',
         'typeofConstant',
-        'try-catch-var'
+        'try-catch-var',
+        'empty'
     ],
     'multiple files': [
         "multi1"
