@@ -115,7 +115,8 @@ var allTests = {
         'typeofConstant',
         'try-catch-var',
         'empty',
-        'Function'
+        'Function',
+        'failingCall'
     ],
     'multiple files': [
         "multi1"
