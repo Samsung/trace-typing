@@ -18,6 +18,8 @@
  * Supports misc. queries on the AST wrt. IIDs.
  */
 var misc = require("./misc");
+var astUtilForTracing = require("./astUtilForTracing");
+
 var assert = misc.assert;
 
 function ASTQueries() {
@@ -88,4 +90,19 @@ function ASTQueries() {
         }
     };
 }
+
+function makeASTInfo(instAST) {
+    var astInfo = {
+        lazyBooleanLocations: astUtilForTracing.computeLazyBooleanLocations((instAST)),
+        dynamicPropertyDeleteNames: astUtilForTracing.computeDynamicPropertyDeleteNames((instAST)),
+        parameterCounts: astUtilForTracing.computeParameterCounts((instAST)),
+        voidedExpressions: astUtilForTracing.computeVoidedExpressions((instAST)),
+        globalVariableDeclarations: astUtilForTracing.computeGlobalVariableDeclarations((instAST)),
+        functionDeclarations: astUtilForTracing.computeFunctionDeclarations((instAST)),
+        forInVariableUpdates: astUtilForTracing.computeForInVariableUpdates((instAST))
+    };
+    return astInfo;
+}
+
+exports.makeASTInfo = makeASTInfo;
 exports.ASTQueries = ASTQueries;

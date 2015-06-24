@@ -16,7 +16,7 @@
 var jalangiInterface = require("../src/JalangiInterface");
 var testUtil = require('../node_test/testUtil2'),
     astUtil = jalangiInterface.astUtil,
-    astUtilForTracing = require('./astUtilForTracing'),
+    ASTQueries = require('./ASTQueries'),
     path = require("path"),
     temp = require("temp"),
     fs = require("fs"),
@@ -43,26 +43,6 @@ function run(target, exportFileOrFunction, debug) {
                 });
             };
         }
-    }
-
-    function makeASTInfo(instAST) {
-        var astInfo = {
-            lazyBooleanLocations: astUtilForTracing.computeLazyBooleanLocations((instAST)),
-            dynamicPropertyDeleteNames: astUtilForTracing.computeDynamicPropertyDeleteNames((instAST)),
-            parameterCounts: astUtilForTracing.computeParameterCounts((instAST)),
-            voidedExpressions: astUtilForTracing.computeVoidedExpressions((instAST)),
-            globalVariableDeclarations: astUtilForTracing.computeGlobalVariableDeclarations((instAST)),
-            functionDeclarations: astUtilForTracing.computeFunctionDeclarations((instAST)),
-            forInVariableUpdates: astUtilForTracing.computeForInVariableUpdates((instAST))
-        };
-        return astInfo;
-    }
-
-    function injectASTInfo(instResult) {
-        var prefix = "(function (sandbox) {\n" +
-            "sandbox.ast_info = " + JSON.stringify(makeASTInfo(instResult.instAST)) + ";\n" +
-            "}(typeof J$ === 'undefined' ? J$ = {} : J$));";
-        return prefix + "\n" + instResult.code;
     }
 
     var syntacticSupportChecker = {
@@ -123,7 +103,7 @@ function run(target, exportFileOrFunction, debug) {
     return jalangi.instrumentDir({
         inputFiles: [target.dir || target.main] /* instrument directory or single file */,
         outputDir: outputDir,
-        astHandler: makeASTInfo,
+        astHandler: ASTQueries.makeASTInfo,
         inlineIID: true
     }).then(
         function (options) {

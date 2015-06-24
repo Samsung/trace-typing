@@ -28,7 +28,7 @@ var CoercionUtil = require("./CoercionUtil").CoercionUtil,
     TemporaryManager = require("./TemporaryManager").TemporaryManager,
     coerceTypes = require("./traceElements").coerceTypes,
     TraceBuildingAnalysis = require("./TraceBuildingAnalysis").TraceBuildingAnalysis,
-    ASTQueries = require("./ASTQueries").ASTQueries,
+    ASTQueries = require("./ASTQueries"),
     fakes = require("./fakes"),
     TraceCollectionController = require("./TraceCollectionController"),
     NativeSynthesisManager = require("./NativeSynthesisManager"),
@@ -48,7 +48,7 @@ var registeredAnalysis = undefined;
 })(J$);
 
 function reset() {
-    var astQueries = new ASTQueries(savedSandbox);
+    var astQueries = new ASTQueries.ASTQueries(savedSandbox);
 
     var contextAnalysis = new ContextAnalysis();
 
@@ -119,5 +119,18 @@ function reset() {
 
 
     var traceBuildingAnalysis = new TraceBuildingAnalysis(temporaryManager, astQueries, contextAnalysis.contextState, coercionUtil, traceBuilder, traceCollectionController, nativeSynthesisManager);
-    registeredAnalysis.setAnalyses(contextAnalysis.analysisPre, new CompositeAnalysis(traceBuildingAnalysis, contextAnalysis.analysisPost))
+    registeredAnalysis.setAnalyses(contextAnalysis.analysisPre, new CompositeAnalysis(traceBuildingAnalysis, contextAnalysis.analysisPost));
+
+    // override!
+    registeredAnalysis.instrumentCode = function(iid, newCode, newAst){
+
+        function injectASTInfo() {
+            var prefix = "(function (sandbox) {\n" +
+                "sandbox.ast_info = " + JSON.stringify(ASTQueries.makeASTInfo(newAst)) + ";\n" +
+                "}(typeof J$ === 'undefined' ? J$ = {} : J$));";
+            return prefix + "\n" + newCode;
+        }
+
+        return {result: injectASTInfo()};
+    };
 }
