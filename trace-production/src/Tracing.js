@@ -21,7 +21,6 @@
  */
 var CoercionUtil = require("./CoercionUtil").CoercionUtil,
     TraceBuilder = require("./TraceBuilder").TraceBuilder,
-    IIDAwareTraceBuilder = require("./TraceBuilder").IIDAwareTraceBuilder,
     CompositeAnalysis = require("./CompositeAnalysis").CompositeAnalysis,
     ContextAnalysis = require("./ContextAnalysis").ContextAnalysis,
     TemporaryManager = require("./TemporaryManager").TemporaryManager,
