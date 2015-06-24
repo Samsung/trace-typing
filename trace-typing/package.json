@@ -15,7 +15,7 @@
     "ncp": "=2.0.0",
     "open": "=0.0.5",
     "temp": "=0.8.1",
-    "trace-production": "git+ssh://git@stash.sisa.samsung.com:7999/~e.andreasen/trace-production.git",
+    "trace-production": "file:../trace-production",
     "typescript": "=1.5.0-alpha"
   },
   "devDependencies": {

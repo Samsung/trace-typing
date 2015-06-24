@@ -116,7 +116,8 @@ var allTests = {
         'try-catch-var',
         'empty',
         'Function',
-        'failingCall'
+        'failingCall',
+        'with'
     ],
     'multiple files': [
         "multi1"
