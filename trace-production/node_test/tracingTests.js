@@ -183,7 +183,6 @@ function ignore(test) {
         '/karma', // Performance issue: > 5 minutes. Lots of time spent in instrumentation
         '/less', // Analysis bug: Causes "TypeError: Cannot read property 'css' of undefined", but empty Jalangi analysis is fine...
         '/pm2', // syntactic getter/setter
-        '/escodegen', // "Fatal error in ../deps/v8/src/handles.h, line 48" !!!!!!!!!!!!!!!
         'getter',
         'setter',
         'eval',
@@ -212,6 +211,21 @@ var traceExportDirectory = require("../src/ConfigLoader").load().tracesDirectory
 if (!fs.existsSync(traceExportDirectory)) {
     mkdirp.sync(traceExportDirectory);
 }
+var nonDebugSubstrings = [
+    // large cases that should not be slowed down by the debug-flag
+    '/escodegen'
+];
+function shouldDebug(main){
+    if(!DEBUG){
+        return false;
+    }
+    for(var i = 0; i < nonDebugSubstrings.length; i++){
+        if(main.indexOf(nonDebugSubstrings[i])){
+            return false;
+        }
+    }
+    return true;
+}
 describe('tracing', function () {
     this.timeout(15 * 60 * 1000);
     Object.getOwnPropertyNames(allTests).forEach(function (suiteName) {
@@ -228,7 +242,7 @@ describe('tracing', function () {
                     } else {
                         target.main = path.resolve("tests/tracing/" + test + ".js");
                     }
-                    runner.run(target, exportFile, DEBUG).then(function () {
+                    runner.run(target, exportFile, shouldDebug(target.main)).then(function () {
                         done();
                     }).done();
                 });
