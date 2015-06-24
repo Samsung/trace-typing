@@ -112,7 +112,8 @@ var allTests = {
         'oneShotClosure',
         'SJS-map-object-literals',
         'trivialAssignment',
-        'typeofConstant'
+        'typeofConstant',
+        'try-catch-var'
     ],
     'multiple files': [
         "multi1"
