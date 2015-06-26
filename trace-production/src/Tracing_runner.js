@@ -30,7 +30,7 @@ function run(target, exportFileOrFunction, debug) {
             exportFile = exportFileOrFunction;
             exportFunctionWrapper = undefined;
         } else if (typeof exportFileOrFunction === 'function') {
-            exportFile = temp.path();
+            exportFile = temp.path({suffix: ".trace"});
             exportFunctionWrapper = function () {
                 return Q.nfcall(fs.readFile, exportFile, {encoding: "utf8"}).then(function (content) {
                     var parsed = JSON.parse(content);
@@ -82,7 +82,6 @@ function run(target, exportFileOrFunction, debug) {
         var exitCode = options.exitCode;
         var stdout = options.stdout;
         var stderr = options.stderr;
-        var result = options.result;
         if (stderr) {
             console.error(stderr);
         }
@@ -90,8 +89,7 @@ function run(target, exportFileOrFunction, debug) {
             console.log(stdout);
         }
         if (exitCode !== 0) {
-            console.log(stdout);
-            throw stderr;
+            throw new Error("Exit code === %d", options.exitCode);
         } else {
             if (exportFunctionWrapper) {
                 return exportFunctionWrapper();
@@ -100,8 +98,9 @@ function run(target, exportFileOrFunction, debug) {
     };
     var instrumentationDir = require("../src/ConfigLoader").load().instrumentationDirectory;
     var outputDir = instrumentationDir;
+    var inputFiles = [target.dir || target.main].map(function(f){return path.resolve(f);});
     return jalangi.instrumentDir({
-        inputFiles: [target.dir || target.main] /* instrument directory or single file */,
+        inputFiles: inputFiles /* instrument directory or single file */,
         outputDir: outputDir,
         astHandler: ASTQueries.makeASTInfo,
         inlineIID: true
