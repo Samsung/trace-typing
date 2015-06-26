@@ -48,6 +48,7 @@ function reset() {
 
     var contextAnalysis = new ContextAnalysis();
 
+    var exportFile = J$.initParams.exportFile;
     var statementsFile = J$.initParams.exportFile + '.statements';
 
     // TODO implement proper stream interface?
@@ -106,7 +107,7 @@ function reset() {
     var temporaryManager = new TemporaryManager(contextAnalysis.contextState, astQueries, traceBuilder, nativeSynthesisManager);
     nativeSynthesisManager.init(temporaryManager);
 
-    var traceCollectionController = new TraceCollectionController.TraceCollectionController(temporaryManager, statementStreamer.end, statementsFile, contextAnalysis.contextState);
+    var traceCollectionController = new TraceCollectionController.TraceCollectionController(temporaryManager, statementStreamer.end, statementsFile, contextAnalysis.contextState, exportFile);
 
 
     var traceBuildingAnalysis = new TraceBuildingAnalysis(temporaryManager, astQueries, contextAnalysis.contextState, coercionUtil, traceBuilder, traceCollectionController, nativeSynthesisManager);

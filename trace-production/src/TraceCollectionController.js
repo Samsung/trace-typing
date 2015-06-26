@@ -17,7 +17,7 @@ var fs = require('fs');
 var traceElements = require('./traceElements');
 var DEBUG = J$.initParams.debug === 'true';
 var checkTraceConsistency = require("./TraceConsistencyChecker").checkTraceConsistency;
-function stop(end, statementsFile) {
+function stop(end, statementsFile, exportFile) {
     end(function () {
         if (DEBUG) {
             var statementStrings = fs.readFileSync(statementsFile, 'utf8').split("\n");
@@ -30,15 +30,15 @@ function stop(end, statementsFile) {
                 // console.log(i++ + "::: " + traceElements.elementToString(statement));
             });
         }
-        if (J$.initParams.exportFile) {
+        if (exportFile) {
             // assumes a file system is available!
             var TraceExporter = require("./TraceExporter").TraceExporter;
-            new TraceExporter().export(statementsFile, J$.smap, J$.initParams.exportFile);
+            new TraceExporter().export(statementsFile, J$.smap, exportFile);
         }
     });
 }
 
-function TraceCollectionController(tmpManager, end, statementsFile, contextState) {
+function TraceCollectionController(tmpManager, end, statementsFile, contextState, exportFile) {
     return {
         maybeStop: function (exceptionVal) {
             if (contextState.isCallStackEmpty() && contextState.isScriptStackEmpty()) {
@@ -47,7 +47,7 @@ function TraceCollectionController(tmpManager, end, statementsFile, contextState
                         tmpManager.checkEmptyShadowStack();
                     }
                 }
-                stop(end, statementsFile);
+                stop(end, statementsFile, exportFile);
             }
         },
         forceStop: function () {
