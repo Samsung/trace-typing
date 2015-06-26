@@ -21,18 +21,14 @@ var traceElements = require("./traceElements"),
 
 function TraceExporter() {
     this.export = function (statementsFile, smap, exportFile) {
-        fs.writeFile(exportFile,
+        fs.writeFileSync(exportFile,
             JSON.stringify({
                 date: new Date().toISOString(),
                 statementsFile: statementsFile,
                 format: "naive",
                 smap: smap
-            }),
-            function (err) {
-                if (err) {
-                    throw err;
-                }
-            });
+            })
+        );
     }
 }
 exports.TraceExporter = TraceExporter;
