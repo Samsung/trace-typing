@@ -36,6 +36,11 @@ function ModuleManager(currentModule) {
 }
 var isStrict;
 function TraceBuildingAnalysis(tmpManager, astQueries, contextUtil, coercionUtil, traceBuilder, traceCollectionController, nativeSynthesisManager) {
+    /**
+     * Used for keeping track of objects that are being initialized (by constructors)
+     */
+    var isBeingInitialized = new WeakSet/*<Object>*/();
+
     function isGlobalVariable(name, isGlobal, isScriptLocal) {
         var isSyntacticallyGlobalVariable = isGlobal || (isScriptLocal && !NODEJS_ENVIRONMENT);
         var isNodeJSAmbientVariable = (NODEJS_ENVIRONMENT && ('module' === name || 'exports' === name || 'require' === name || '__dirname' === name || '__filename' === name));
@@ -143,6 +148,10 @@ function TraceBuildingAnalysis(tmpManager, astQueries, contextUtil, coercionUtil
 
     this.invokeFun = function (iid, f, base, args, result, isConstructor, isMethod) {
         var resultTmp = tmpManager.getResultTmp();
+        if(isConstructor){
+            // TODO: slightly imprecise: a constructor might retur a primitive or some other object...
+            isBeingInitialized.delete(result);
+        }
         if (f === Function.call) {
             result = this.invokeFun(iid, base, args[0], Array.prototype.slice.call(args, 1), result, false, false);
         } else if (f === Function.apply) {
@@ -306,7 +315,7 @@ function TraceBuildingAnalysis(tmpManager, astQueries, contextUtil, coercionUtil
         if(isComputed) {
             traceBuilder.infoBuilder.makeNextFieldAccessIsDynamic(iid);
         }
-        traceBuilder.makeFieldWriteStatement(baseTmp, offset, sourceTmp, false, iid);
+        traceBuilder.makeFieldWriteStatement(baseTmp, offset, sourceTmp, isPrimitive(base)? false: isBeingInitialized.has(base), iid);
 
         if (offset === 'exports' && moduleManager.isModule(base)) {
             nativeSynthesisManager.toNative(val, sourceTmp, iid);
@@ -387,6 +396,9 @@ function TraceBuildingAnalysis(tmpManager, astQueries, contextUtil, coercionUtil
     this.functionEnter = function (iid, f, dis, args) {
         var externalCaller = contextUtil.isCalledFromExternal();
         var asConstructor = !externalCaller && contextUtil.isCalledAsConstructor();
+        if(asConstructor){
+            isBeingInitialized.add(dis);
+        }
         // console.log("functionEnter(%s, %s, %s, |args| = %s)", iid, typeof f, typeof dis, args.length);
         var tmps = tmpManager.popFunctionCallTemporaries(f, /* during a constructor call, the tmps.baseTmp is the prototypeTmp*/asConstructor ? dis.__proto__ : dis, args, externalCaller);
         if (externalCaller) {
