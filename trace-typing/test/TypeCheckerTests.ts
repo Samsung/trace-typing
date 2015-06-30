@@ -168,10 +168,10 @@ describe("TypeChecker unit tests", function () {
         });
     });
 });
-describe.only("Type check traces and display table", function () {
+describe.skip("Type check traces and display table", function () {
     var bigApps = [/*'gulp', */ 'lodash', 'minimist', 'optparse', /*'express', 'grunt', */ 'lazy.js', 'underscore'/*, 'coffee-script'*/, 'escodegen'];
     var bigApps = [/*'gulp', */ 'lodash', 'minimist', 'optparse', /*'express', 'grunt', */ 'lazy.js', 'underscore'/*, 'coffee-script'*/, /*'escodegen'*/];
-    describe.skip("Type check everything ", function () {
+    describe("Type check everything ", function () {
         this.timeout(10 * 60 * 1000);
         var traceImporter:TraceImporter.TraceImporter = new TraceImporter.TraceImporter();
         traceImporter.getAllTraceFiles().forEach(function (file) {
