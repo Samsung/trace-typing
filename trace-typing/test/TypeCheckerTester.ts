@@ -70,7 +70,7 @@ export function testTrace(err:any, trace:Trace, expectedErrorCount:number, infer
         var description = (typeSystemDescription ? typeSystemDescription : "Some type system") + " w. " + JSON.stringify(flowConfig);
         var annotated = PersistentResults.annotate([result], trace.sources, description);
         PersistentResults.save(annotated, function () {
-            if (expectedErrorCount !== -1 || true) {
+            if (expectedErrorCount !== -1) {
                 var show = true && expectedErrorCount !== dynamicErrorCount;
                 if (dynamicErrorCount > 0 && show) {
                     var showErrorsAndWarnings = true;
