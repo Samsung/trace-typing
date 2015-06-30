@@ -197,6 +197,9 @@ function TemporaryManager(contextState, astQueries, traceBuilder, nativeSynthesi
     this.getGlobalTmp = function () {
         return "magic:" + traceBuilder.externals._Global;
     };
+    this.getScopeID = function () {
+        return contextState.getCurrentScopeID();
+    };
     this.checkEmptyShadowStack = function () {
         assert(shadowStack.length === 0, "shadow stack non-empty: " + shadowStack);
     };

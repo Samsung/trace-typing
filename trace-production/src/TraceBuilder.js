@@ -70,13 +70,14 @@ function TraceBuilder(exportFunction) {
                     }
                 });
             },
-            makeFunctionEnter: function (functionTmp, baseTmp, argsTmps, iid) {
+            makeFunctionEnter: function (functionTmp, baseTmp, argsTmps, scopeID, iid) {
                 this.register({
                     kind: elementKinds.INFO, meta: {iid: J$.sid + "/" + iid}, properties: {
                         kind: infoKinds.FUNCTION_ENTER,
                         functionTmp: functionTmp,
                         baseTmp: baseTmp,
-                        argsTmps: argsTmps
+                        argsTmps: argsTmps,
+                        scopeID: scopeID
                     }
                 });
             },

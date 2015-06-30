@@ -401,7 +401,7 @@ function TraceBuildingAnalysis(tmpManager, astQueries, contextUtil, coercionUtil
         var functionTmp = tmpManager.getIntermediaryTmp("function");
 
         // the parameters encode context information of the caller context, map them to get the callee context!
-        traceBuilder.infoBuilder.makeFunctionEnter(functionTmp, baseTmp, argsTmps, iid);
+        traceBuilder.infoBuilder.makeFunctionEnter(functionTmp, baseTmp, argsTmps, tmpManager.getScopeID(), iid);
         argsTmps.forEach(function (e, i) {
             traceBuilder.makeMoveStatement(argsTmps[i], tmps.argsTmps[i], iid);
         });
