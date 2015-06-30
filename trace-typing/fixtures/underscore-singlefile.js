@@ -1555,20 +1555,6 @@ var object = {cheese: 'crumpets', stuff: function(){ return 'nonsense'; }};
 _.result(object, 'cheese');
 _.result(object, 'stuff');
 _.now();
-var compiled = _.template("hello: <%= name %>");
-compiled({name: 'moe'});
-
-var template = _.template("<b><%- value %></b>");
-template({value: '<script>'});
-var compiled = _.template("<% print('Hello ' + epithet); %>");
-compiled({epithet: "stooge"});
-_.templateSettings = {
-    interpolate: /\{\{(.+?)\}\}/g
-};
-
-var template = _.template("Hello {{ name }}!");
-template({name: "Mustache"});
-_.template("Using 'with': <%= data.answer %>", {variable: 'data'})({answer: 'no'});
 
 _.map([1, 2, 3], function(n){ return n * 2; });
 _([1, 2, 3]).map(function(n){ return n * 2; });
