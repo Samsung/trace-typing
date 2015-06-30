@@ -69,6 +69,11 @@ var precisionConfigs = {
         flowInsensitiveVariables: false,
         contextInsensitiveVariables: true
     },
+    callstackSensitiveVariables: {
+        flowInsensitiveVariables: false,
+        contextInsensitiveVariables: false,
+        callstackSensitiveVariables: true
+    },
     none: {
         flowInsensitiveVariables: true,
         contextInsensitiveVariables: true
@@ -472,7 +477,56 @@ describe("TypedTraceReplayer", function () {
             }, config, precisionConfig, done);
         });
     });
+    describe("Call stack contexts", function () {
+        var config = inferenceConfigs.fullIntersection;
+        var precisionConfig = precisionConfigs.callstackSensitiveVariables;
+        it('id function should not merge', function (done) {
+            test('function f(x){return x;} f("foo"); RESULT = f(42);', function (type) {
+                assert.deepEqual(type, Number);
+            }, config, precisionConfig, done);
+        });
+        it('Should not merge through variables', function (done) {
+            test('function f(x){var v = x; return v;} f("foo"); RESULT = f(42);', function (type) {
+                assert.deepEqual(type, Number);
+            }, config, precisionConfig, done);
+        });
+        it('Should not merge parameters', function (done) {
+            test('function f(x){if(x === "foo"){ return x; } else { return x; };} f("foo"); RESULT = f(42);', function (type) {
+                assert.deepEqual(type, Number);
+            }, config, precisionConfig, done);
+        });
+        it('Should not merge returns', function (done) {
+            test('function f(x, y){if(x === "foo"){ return x; } else { return y; };} f("foo", 42); RESULT = f("bar", 42);', function (type) {
+                assert.deepEqual(type, Number);
+            }, config, precisionConfig, done);
+        });
+        it('Should have call-local variables', function (done) {
+            test('var first = true; function f(){ var x = "BAD"; if(first){x = 42; first = false; f(); return x;} return 42;} RESULT = f();', function (type) {
+                assert.deepEqual(type, Number);
+            }, config, precisionConfig, done);
+        });
+        it('Should have flow sensitive variables', function (done) {
+            test('var x = "foo"; x = 42; RESULT =  x;', function (type) {
+                assert.deepEqual(type, Number);
+            }, config, precisionConfig, done);
+        });
 
+        it('id function should merge on same call stack', function (done) {
+            test('function f(x){RESULT = x;} var args = ["foo", 42]; for (var i = 0; i < args.length; i++){ f(args[i]); };', function (type:TupleType) {
+                assert.deepEqual(type, top);
+            }, config, precisionConfig, done);
+        });
+        it('Should merge through variables on same call stack', function (done) {
+            test('function f(x){var v = x; RESULT = v;} var args = ["foo", 42]; for (var i = 0; i < args.length; i++){ f(args[i]); };', function (type:TupleType) {
+                assert.deepEqual(type, top);
+            }, config, precisionConfig, done);
+        });
+        it('Should merge parameters on same call stack', function (done) {
+            test('function f(x){if(x === "foo"){ RESULT = x; } else { RESULT = x; };} var args = ["foo", 42]; for (var i = 0; i < args.length; i++){ f(args[i]); };', function (type:TupleType) {
+                assert.deepEqual(type, top);
+            }, config, precisionConfig, done);
+        });
+    });
     describe("Context insensitivity", function () {
         var config = inferenceConfigs.fullIntersection;
         var precisionConfig = precisionConfigs.contextInsensitive;

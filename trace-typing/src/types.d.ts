@@ -41,6 +41,7 @@ interface Variable {
     iid?: string
     name?: string
     functionIID?: string
+    // TODO `callCount` is a misleading name, together with functionIID it is a scopeID, rename and avoid back/forth translation
     callCount?: string
 }
 
@@ -74,6 +75,7 @@ interface Delete extends TraceStatement {
     fieldName: string
 }
 
+declare type ScopeID = string
 // Umbrella for all kinds of Infos, specialize when needed
 interface InfoProperties {
     sourceTmp?: Variable
@@ -81,8 +83,10 @@ interface InfoProperties {
     functionTmp?: Variable
     baseTmp?: Variable
     argsTmps?: Variable[]
-    isConstructorCall?: boolean
+    isConstructorCall?: boolean,
+    scopeID?: ScopeID
 }
+
 interface Info extends TraceStatement {
     kind: number // enum: TraceLanguageAST#InfoKinds
     properties: InfoProperties
@@ -402,7 +406,9 @@ interface ExperimentConfig {
 
 interface PrecisionConfig {
     flowInsensitiveVariables?: boolean
+    // TODO merge these two options...
     contextInsensitiveVariables?: boolean
+    callstackSensitiveVariables?: boolean
 }
 interface Target {
     dir?: string

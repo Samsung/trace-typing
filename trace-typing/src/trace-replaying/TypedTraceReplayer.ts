@@ -18,6 +18,17 @@ interface SimpleTypes {
     NoneFunction: FunctionType
 }
 
+interface CallMonitor {
+    enter(scopeID:ScopeID):void
+    call(iid:string):void
+    return():void
+}
+
+interface CallAbstractor {
+    abstract(scopeID:ScopeID): ScopeID
+    getMonitor(): CallMonitor
+}
+
 interface RecoverPropertyTypeFunc {
     ():TupleType
 }
@@ -79,7 +90,8 @@ class StatementDataflowVisitor implements TraceStatementVisitor<void> {
 
     constructor(private expressionVisitor:TraceExpressionVisitor<TupleType>,
                 private variables:Variables<TupleType>,
-                private inferredEnv:Variables<TupleType>) {
+                private inferredEnv:Variables<TupleType>,
+                private callMonitor:CallMonitor) {
 
     }
 
@@ -110,9 +122,20 @@ class StatementDataflowVisitor implements TraceStatementVisitor<void> {
                 this.fixedVariables.add(e.properties.functionTmp);
                 this.fixedVariables.add(e.properties.baseTmp);
                 e.properties.argsTmps.forEach(argTmp => this.fixedVariables.add(argTmp));
+                if (this.callMonitor) {
+                    this.callMonitor.enter(e.properties.scopeID);
+                }
                 break;
             case AST.InfoKinds.FunctionInvocation:
+                if (this.callMonitor) {
+                    this.callMonitor.call(e.meta.iid);
+                }
+                break;
             case AST.InfoKinds.FunctionReturn:
+                if (this.callMonitor) {
+                    this.callMonitor.return();
+                }
+                break;
             case AST.InfoKinds.Coerce:
             case AST.InfoKinds.ForInObject:
             case AST.InfoKinds.NextNewIsArray:
@@ -144,7 +167,7 @@ class AbstractedVariables implements Variables<TupleType> {
     private variables = new State.VariablesImpl<TupleType>();
     private abstractionCache = new Map<Variable, Variable>();
 
-    constructor(private lattice:CompleteLattice<TupleType>, private flowConfig:PrecisionConfig) {
+    constructor(private lattice:CompleteLattice<TupleType>, private flowConfig:PrecisionConfig, private callAbstractor:CallAbstractor) {
     }
 
     private abstract(variable:Variable):Variable {
@@ -165,7 +188,13 @@ class AbstractedVariables implements Variables<TupleType> {
             abstractVariable.functionIID = variable.functionIID;
         }
         if (variable.callCount && !killCallContext) {
-            abstractVariable.callCount = variable.callCount;
+            var scopeID = variable.functionIID + ":" + variable.callCount /* TODO avoid this manual mapping that requires knowledge of encodings.. */;
+            var abstractScopeID = this.callAbstractor.abstract(scopeID);
+            if (abstractScopeID !== undefined) {
+                abstractVariable.callCount = abstractScopeID;
+            } else {
+                abstractVariable.callCount = variable.callCount;
+            }
         }
         var canonicalized = VariableManager.canonicalize(abstractVariable);
         this.abstractionCache.set(variable, canonicalized);
@@ -184,7 +213,7 @@ class AbstractedVariables implements Variables<TupleType> {
         var abstractVariable = this.abstract(variable);
         var oldType = this.variables.read(abstractVariable, true);
         var doWeakUpdateToNamedVariable = this.flowConfig.flowInsensitiveVariables && variable.named;
-        var doWeakUpdateToUnnamedVariable = this.flowConfig.contextInsensitiveVariables && !variable.named;
+        var doWeakUpdateToUnnamedVariable = (this.flowConfig.contextInsensitiveVariables || this.flowConfig.callstackSensitiveVariables) && !variable.named;
         var doWeakUpdate = doWeakUpdateToNamedVariable || doWeakUpdateToUnnamedVariable || variable.forceMerge;
         if (oldType !== undefined && doWeakUpdate) {
             resultType = this.lattice.lub(resultType, oldType);
@@ -193,7 +222,7 @@ class AbstractedVariables implements Variables<TupleType> {
         if (oldType === undefined || !TypeImpls.isTupleTypeEqual(resultType, oldType)) {
             if (!this.dirty && doWeakUpdate) {
                 var BUGHUNT = false;
-                if(BUGHUNT) {
+                if (BUGHUNT) {
                     console.log("First type change at: %s: \n\t%s \n\t\t-> \n\t%s", JSON.stringify(abstractVariable), oldType === undefined ? "-" : TypeImpls.toPrettyString(oldType), TypeImpls.toPrettyString(resultType));
                     if (oldType !== undefined)
                         TypeImpls.isTupleTypeEqual(resultType, oldType, true)
@@ -205,16 +234,66 @@ class AbstractedVariables implements Variables<TupleType> {
     }
 }
 
+class NoCallAbstraction implements CallAbstractor {
+    public abstract(scopeID:ScopeID):ScopeID {
+        return scopeID;
+    }
+
+    public getMonitor():CallMonitor {
+        return undefined;
+    }
+}
+
+class CallstackAbstraction implements CallAbstractor {
+    private monitor:CallMonitor;
+    private scopeIDAbstraction = new Map<ScopeID, string>();
+    private stackIDMap = new Map<string, number>();
+
+    constructor() {
+        var stack:string[] = [];
+        var scopeIDAbstraction = this.scopeIDAbstraction;
+        var stackIDMap = this.stackIDMap;
+        this.monitor = {
+            call(iid:string) {
+                //console.log('call(%s)', iid);
+                stack.push(iid);
+            },
+            enter(scopeID:ScopeID) {
+                //console.log('enter(%s)', scopeID);
+                var stackString = stack.join("->");
+                if(!stackIDMap.has(stackString)){
+                    stackIDMap.set(stackString, stackIDMap.size);
+                }
+                scopeIDAbstraction.set(scopeID, '' + stackIDMap.get(stackString))
+            },
+            return(){
+                //console.log('return');
+                stack.pop();
+            }
+        };
+    }
+
+    public abstract(scopeID:ScopeID):ScopeID {
+        return this.scopeIDAbstraction.get(scopeID);
+    }
+
+    public getMonitor():CallMonitor {
+        return this.monitor;
+    }
+
+}
+
 function replayStatements(inferredEnv:Variables<TupleType>, varibleList:Variable[], statements:TraceStatement[], flowConfig:PrecisionConfig, lattice:CompleteLattice<TupleType>):{
     propagatedEnv: Variables<TupleType>
     inferredEnv: Variables<TupleType>
 } {
-    var variablesDecorator = new AbstractedVariables(lattice, flowConfig);
+    var callAbstraction = flowConfig.callstackSensitiveVariables ? new CallstackAbstraction() : new NoCallAbstraction();
+    var variablesDecorator = new AbstractedVariables(lattice, flowConfig, callAbstraction);
     var iterationCount = 0;
     var start = new Date();
     do {
         iterationCount++;
-        if(iterationCount > 10000){
+        if (iterationCount > 10000) {
             throw new Error("Not likely to terminate - probably a non-monotoniticy issue, set BUGHUN = true in TypedTraceReplayer.ts...");
         }
         var roundStart = new Date();
@@ -227,7 +306,7 @@ function replayStatements(inferredEnv:Variables<TupleType>, varibleList:Variable
         };
 
         var expressionVisitor = new ExpressionDataflowVisitor(replayState.variables, inferredEnv);
-        var statementDataflowVisitor = new StatementDataflowVisitor(expressionVisitor, replayState.variables, inferredEnv);
+        var statementDataflowVisitor = new StatementDataflowVisitor(expressionVisitor, replayState.variables, inferredEnv, callAbstraction.getMonitor());
 
         statements.forEach(function (statement) {
             // console.log(statement.toString());

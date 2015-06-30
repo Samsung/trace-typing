@@ -96,7 +96,8 @@ export function deserializeNaiveTrace(externalTrace:any[], smap:any):Trace {
                             functionTmp: mkVar(p.functionTmp),
                             baseTmp: mkVar(p.baseTmp),
                             argsTmps: p.argsTmps.map(mkVar),
-                            isConstructorCall: p.isConstructorCall
+                            isConstructorCall: p.isConstructorCall,
+                            scopeID: p.scopeID
                         };
                         break;
                     case AST.InfoKinds.FunctionReturn:
