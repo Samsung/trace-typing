@@ -168,17 +168,16 @@ describe("TypeChecker unit tests", function () {
         });
     });
 });
-describe.skip("Type check traces and display table", function () {
+describe.only("Type check traces and display table", function () {
     var bigApps = [/*'gulp', */ 'lodash', 'minimist', 'optparse', /*'express', 'grunt', */ 'lazy.js', 'underscore'/*, 'coffee-script'*/, 'escodegen'];
-    // var bigApps = ['minimist'];
-    describe("Type check everything ", function () {
+    var bigApps = [/*'gulp', */ 'lodash', 'minimist', 'optparse', /*'express', 'grunt', */ 'lazy.js', 'underscore'/*, 'coffee-script'*/, /*'escodegen'*/];
+    describe.skip("Type check everything ", function () {
         this.timeout(10 * 60 * 1000);
         var traceImporter:TraceImporter.TraceImporter = new TraceImporter.TraceImporter();
         traceImporter.getAllTraceFiles().forEach(function (file) {
-            var noBigApps = true;
-            var onlyBigApps = false;
+            var noBigApps = false;
+            var onlyBigApps = true;
 
-            // var bigApps = ['optparse'];
             if (file.indexOf("JSON_nan_bug") !== -1 || file.indexOf("calls") !== -1 /* ambiguous recursiveness */ || (onlyBigApps && file.indexOf("-bug") !== -1) || (onlyBigApps && !bigApps.some(app => file.indexOf(app) !== -1)) || (noBigApps && bigApps.some(app => file.indexOf(app) !== -1))) {
                 return; // ignore
             }
@@ -188,19 +187,21 @@ describe.skip("Type check traces and display table", function () {
                 , [inferenceConfigs.fullIntersection, 'intersection']
             ];
             var allFunctionTypes = [
-                [TypeLattices.FunctionTypeLatticeKinds.FunctionIntersection, "IntersectionFunctions", false]
-                , [TypeLattices.FunctionTypeLatticeKinds.FunctionPointwiseLub, "SingleFunctions", true]
+                [TypeLattices.FunctionTypeLatticeKinds.FunctionIntersection, "IntersectionFunctions", false, false],
+                [TypeLattices.FunctionTypeLatticeKinds.FunctionIntersection, "IntersectionFunctionsWCallStack", false, true]
+                , [TypeLattices.FunctionTypeLatticeKinds.FunctionPointwiseLub, "SingleFunctions", true, false]
             ];
             var allVariableFlowInsensitivities = [
                 false
                 , true
             ]; // TODO add inflationary
             allTypes.forEach((types:[()=>ValueTypeConfig, string])=> {
-                allFunctionTypes.forEach((functionTypes:[TypeLattices.FunctionTypeLatticeKinds, string, boolean])=> {
+                allFunctionTypes.forEach((functionTypes:[TypeLattices.FunctionTypeLatticeKinds, string, boolean, boolean])=> {
                     allVariableFlowInsensitivities.forEach(vars => {
-                        var flowConfig = {
+                        var flowConfig:PrecisionConfig = {
                             flowInsensitiveVariables: vars,
-                            contextInsensitiveVariables: functionTypes[2]
+                            contextInsensitiveVariables: functionTypes[2],
+                            callstackSensitiveVariables: functionTypes[3]
                         };
                         var typeSystemDescription = types[1] + ' with ' + functionTypes[1] + " and " + JSON.stringify(flowConfig);
                         it("... in particular: " + path.basename(file) + " " + typeSystemDescription, function (done) {
