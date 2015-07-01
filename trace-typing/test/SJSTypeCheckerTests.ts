@@ -387,7 +387,7 @@ describe("SJSTypeChecker unit tests", function () {
             });
         });
 
-        describe.only("Constructors", function () {
+        describe("Constructors", function () {
             it("Should allow empty constructor call", function (done) {
                 testSource("function K(){}; var o = new K();", 0, done, {})
             });
