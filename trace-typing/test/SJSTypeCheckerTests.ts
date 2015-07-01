@@ -387,9 +387,36 @@ describe("SJSTypeChecker unit tests", function () {
             });
         });
 
-        describe.skip("Constructors", function () {
-            it("...", function (done) { // impl.: mark constructor this writes as initializations until constructor-end
-                testSource("", -2, done, {})
+        describe.only("Constructors", function () {
+            it("Should allow empty constructor call", function (done) {
+                testSource("function K(){}; var o = new K();", 0, done, {})
+            });
+            it("Should allow write during constructor call", function (done) {
+                testSource("function K(){this.p = 42;}; var o = new K();", 0, done, {})
+            });
+            it("Should allow indirect write during constructor call", function (done) {
+                testSource("function w(o){o.p = 42;}function K(){w(this);}; var o = new K();", 0, done, {})
+            });
+            it("Should not allow about writes after constructor call", function (done) {
+                testSource("function K(){}; var o = new K(); o.p = 42;", 1, done, {})
+            });
+            it("Should now allow about indirect writes after constructor call", function (done) {
+                testSource("function w(o){o.p = 42;}function K(){}; var o = new K(); w(o);", 1, done, {})
+            });
+            it("Should not allow map constructor call", function (done) {
+                testSource("function K(){this['p'] = 42;}; var o = new K();", 1, done, {})
+            });
+            it("Should now allow mixed map/object constructor call", function (done) {
+                testSource("function K(){this['p'] = 42; this.p = 42;}; var o = new K();", 1, done, {})
+            });
+            it("Should allow updates after constructor call", function (done) {
+                testSource("function K(){this.p = 42;}; var o = new K(); o.p = 42;", 0, done, {})
+            });
+            it("Should not allow conflicting updates after constructor call", function (done) {
+                testSource("function K(){this.p = 'foo';}; var o = new K(); o.p = 42;", 1, done, {})
+            });
+            it("Should allow interchanging literals and constructor results", function (done) {
+                testSource("function K(){this.p = 'foo';}; var o1 = new K(); var o2 = {q: {p: 42}}; o2.q = o1;", 0, done, {})
             });
         });
     });
