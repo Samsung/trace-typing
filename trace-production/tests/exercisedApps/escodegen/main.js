@@ -14944,7 +14944,7 @@ Object.keys(data).forEach(function (category) {
     catCount++;
     console.log("%d: %s", catCount, category);
     if(catCount > 5){
-        // return;
+        return; // limit trace length...
     }
 //    console.log("in category: "+category);
     Object.keys(data[category]).forEach(function (source) {
