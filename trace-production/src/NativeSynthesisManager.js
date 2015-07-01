@@ -395,7 +395,7 @@ function NativeSynthesisManager(traceBuilder) {
                     // ignore "hidden" properties
                     return;
                 }
-                if (name === 'J$' || name === '*J$SID*' || name === 'acorn' || name === 'esotope') {
+                if (name === 'J$' || name === '*J$IID*' || name === '*J$SID*' || name === 'acorn' || name === 'esotope') {
                     // ignore Jalangi & the acorn/esotope included by it
                     return;
                 }
