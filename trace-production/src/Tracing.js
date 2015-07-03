@@ -117,10 +117,13 @@ function reset() {
     registeredAnalysis.instrumentCode = function(iid, newCode, newAst){
 
         function injectASTInfo() {
-            var prefix = "(function (sandbox) {\n" +
-                "sandbox.ast_info = " + JSON.stringify(ASTQueries.makeASTInfo(newAst)) + ";\n" +
-                "}(typeof J$ === 'undefined' ? J$ = {} : J$));";
-            return prefix + "\n" + newCode;
+            if(newAst) {
+                var prefix = "(function (sandbox) {\n" +
+                    "sandbox.ast_info = " + JSON.stringify(ASTQueries.makeASTInfo(newAst)) + ";\n" +
+                    "}(typeof J$ === 'undefined' ? J$ = {} : J$));";
+                return prefix + "\n" + newCode;
+            }
+            return newCode;
         }
 
         return {result: injectASTInfo()};
