@@ -240,6 +240,9 @@ describe("HeapHistoryBuilding", function () {
         it("Should handle Array splice #4, arrays", function (done) {
             test("var a = [[1], [2], [3]]; a.splice(3, 0, [4], [5]); a[0][0]; a[4][0];", done);
         });
+        it("Should handle .chown", function (done) {
+            test("var fs = require('fs'); fs.chown = fs.chown; ", done);
+        });
 
         describe("Regression files", function () {
             function testDir(dir:string, main:string, done:Function) {
