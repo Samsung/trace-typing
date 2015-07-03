@@ -170,23 +170,30 @@ function ignore(test) {
         '../unitTestsFromJalangi/monkeypatch'
     ];
     var forbiddenSubstrings = [
-        //'/exercisedApps',
-        '/bower', // Performance issue: > 5 minutes. Lots of time spent in instrumentation
-        '/browserify', // Jalangi issue#18: "TypeError: Function.prototype.apply was called on undefined, which is a undefined and not a function"
-        '/cheerio', // syntactic getter/setter
-        '/cordova', // Performance issue: > 5 minutes. Lots of time spent in instrumentation
-        '/commander', // uses __proto__ assignment
-        '/express', // performs unobserved property write!!
-        '/forever', // Jalangi issue#18: "TypeError: Function.prototype.apply was called on undefined, which is a undefined and not a function"
-        '/grunt', // performs unobserved property write!!
-        '/gulp', // performs unobserved property write!!
-        '/karma', // Performance issue: > 5 minutes. Lots of time spent in instrumentation
-        '/less', // Analysis bug: Causes "TypeError: Cannot read property 'css' of undefined", but empty Jalangi analysis is fine...
-        '/pm2', // syntactic getter/setter
+        // '/exercisedApps',
+
+        // need to be run with the node-jalangi script (most likely),
+        // (tests are full of warnings about instrumentation failures due to the 'get-all-.js-files' strategy applied by jalangi)
+        'bower', // Performance issue: > 5 minutes. Lots of time spent in instrumentation.
+        '/karma', // Performance issue: > 5 minutes. Lots of time spent in instrumentation.
+        '/cordova', // Performance issue: > 5 minutes. Lots of time spent in instrumentation.
+        '/browserify', // Performance issue: > 5 minutes. Lots of time spent in instrumentation.
+        '/grunt', // 'popping of empty shadow stack' (after a bunch of evals)
+
+        // need support for getters & setters
+        '/cheerio', // uses getter/setter
+        '/pm2', // uses getter/setter
+        '/express', // uses getter/setter
+        '/forever', // uses getter/setter
+        '/gulp', // uses getter/setter
         'getter',
         'setter',
-        'eval',
+
+        // need replayer improvements
+        '/commander', // uses __proto__ assignment
+        'less', // uses nasty polyfill hacks (see exercisedApps/less/node_modules/less/node_modules/graceful-fs/fs.js), fails during replay
         'bind_bug', // uses .callee
+
         '_jalangi_',
         'sunspider' // only for performance testing
     ];
