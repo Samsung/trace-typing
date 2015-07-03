@@ -89,7 +89,7 @@ function run(target, exportFileOrFunction, debug) {
             console.log(stdout);
         }
         if (exitCode !== 0) {
-            throw new Error("Exit code === %d", options.exitCode);
+            throw new Error("Exit code === " + options.exitCode);
         } else {
             if (exportFunctionWrapper) {
                 return exportFunctionWrapper();
