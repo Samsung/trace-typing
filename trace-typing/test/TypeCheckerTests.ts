@@ -168,9 +168,9 @@ describe("TypeChecker unit tests", function () {
         });
     });
 });
-describe.skip("Type check traces and display table", function () {
+describe("Type check traces and display table", function () {
     var bigApps = [/*'gulp', */ 'lodash', 'minimist', 'optparse', /*'express', 'grunt', */ 'lazy.js', 'underscore'/*, 'coffee-script'*/, 'escodegen'];
-    var bigApps = [/*'gulp', */ 'lodash', 'minimist', 'optparse', /*'express', 'grunt', */ 'lazy.js', 'underscore'/*, 'coffee-script'*/, /*'escodegen'*/];
+    //var bigApps = [/*'gulp', */ 'lodash', 'minimist', 'optparse', /*'express', 'grunt', */ 'lazy.js', 'underscore'/*, 'coffee-script'*/, /*'escodegen'*/];
     describe("Type check everything ", function () {
         this.timeout(10 * 60 * 1000);
         var traceImporter:TraceImporter.TraceImporter = new TraceImporter.TraceImporter();
@@ -219,7 +219,7 @@ describe.skip("Type check traces and display table", function () {
         });
     });
 
-    it("Display table & charts", function (done) {
+    it.only("Display table & charts", function (done) {
         // TODO refactor some of this to separate file
         this.timeout(5 * 60 * 1000);
         PersistentResults.load(PersistentResults.ExperimentResultKinds.TypeChecksResult, (results:AnnotatedExperimentResults<TypeChecksResult>[])=> {
@@ -245,14 +245,16 @@ describe.skip("Type check traces and display table", function () {
 
             function makeStackedGroupedBarCharts(location:string):StackedGroupedBarCharts {
                 var warningGroup = [TypeChecker.ConstraintKinds.IsNotTop];
-                var errorGroup = [
-                    TypeChecker.ConstraintKinds.IsSuccessfulCall,
-                    TypeChecker.ConstraintKinds.IsSuccessfulReturn,
-                    TypeChecker.ConstraintKinds.IsObject,
-                    TypeChecker.ConstraintKinds.IsFunction,
-                    TypeChecker.ConstraintKinds.PropertyExists,
-                    TypeChecker.ConstraintKinds.IsAssignmentCompatible
-                ];
+                // the rest of the violated constraint kinds are errors
+                var errorGroup:TypeChecker.ConstraintKinds[] = [];
+                for(var k in TypeChecker.ConstraintKinds){
+                    if(!isNaN(parseInt(k))){
+                        if(warningGroup.indexOf(+k) === -1) {
+                            errorGroup.push(k);
+                        }
+                    }
+                }
+
                 var groups = [errorGroup, warningGroup];
                 var barchartData:BarChartData[] = groupedBySources_keys.map(sources => {
                     var sourceData = groupedBySourcesAndThenDescription.get(sources);
