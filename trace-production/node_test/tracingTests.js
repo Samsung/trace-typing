@@ -174,7 +174,7 @@ function ignore(test) {
 
         // need to be run with the node-jalangi script (most likely),
         // (tests are full of warnings about instrumentation failures due to the 'get-all-.js-files' strategy applied by jalangi)
-        'bower', // Performance issue: > 5 minutes. Lots of time spent in instrumentation.
+        '/bower', // Performance issue: > 5 minutes. Lots of time spent in instrumentation.
         '/karma', // Performance issue: > 5 minutes. Lots of time spent in instrumentation.
         '/cordova', // Performance issue: > 5 minutes. Lots of time spent in instrumentation.
         '/browserify', // Performance issue: > 5 minutes. Lots of time spent in instrumentation.
