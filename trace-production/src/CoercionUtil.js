@@ -79,7 +79,7 @@ function CoercionUtil(tmpGenerator, traceBuilder, coerceTypes, nativeSynthesisMa
         return coercedTmp;
     }
 
-    function toObject(value, valueTmp) {
+    function toObject(value, valueTmp, iid) {
         if (isPrimitive(value)) {
             var allocatedTmp;
             switch (typeof value) {
@@ -95,7 +95,7 @@ function CoercionUtil(tmpGenerator, traceBuilder, coerceTypes, nativeSynthesisMa
                 default:
                     throw new Error("Unhandled coercion: " + typeof value + " -> Object");
             }
-            traceBuilder.infoBuilder.makeCoercion(valueTmp, coerceTypes.Object, allocatedTmp);
+            traceBuilder.infoBuilder.makeCoercion(valueTmp, coerceTypes.Object, allocatedTmp, iid);
             return allocatedTmp;
         }
         return valueTmp;
@@ -330,7 +330,7 @@ function CoercionUtil(tmpGenerator, traceBuilder, coerceTypes, nativeSynthesisMa
             case "&":
             case "|":
             case "^":
-                return [toInt32(leftValue, leftValue, iid), toInt32(rightValue, rightTmp, iid)];
+                return [toInt32(leftValue, leftTmp, iid), toInt32(rightValue, rightTmp, iid)];
             case "delete":
                 throw new Error("Coercion for delete is handled explicitly in analysis.binary");
             default:
