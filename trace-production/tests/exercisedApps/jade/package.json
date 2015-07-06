@@ -1,0 +1,6 @@
+{
+  "name": "trace-typing-benchmark_jade",
+  "devDependencies": {
+    "jade": "^1.11.0"
+  }
+}

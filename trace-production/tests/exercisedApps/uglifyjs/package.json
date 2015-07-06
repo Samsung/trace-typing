@@ -1,0 +1,6 @@
+{
+  "name": "trace-typing-benchmark_uglifyjs",
+  "devDependencies": {
+    "uglifyjs": "^2.4.10"
+  }
+}

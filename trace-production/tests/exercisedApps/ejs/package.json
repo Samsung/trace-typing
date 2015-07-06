@@ -1,0 +1,6 @@
+{
+  "name": "trace-typing-benchmark_ejs",
+  "devDependencies": {
+    "ejs": "^2.3.2"
+  }
+}

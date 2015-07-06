@@ -157,7 +157,21 @@ var allTests = {
         "../exercisedApps/minimist",
         "../exercisedApps/optparse",
         "../exercisedApps/pm2",
-        "../exercisedApps/underscore"
+        "../exercisedApps/underscore",
+
+        "../exercisedApps/jade",
+        "../exercisedApps/validator", // OK
+        "../exercisedApps/jshint",
+        "../exercisedApps/uglifyjs",
+        "../exercisedApps/xml2js", // OK
+        "../exercisedApps/ejs", // OK
+        "../exercisedApps/jscs",
+        "../exercisedApps/handlebars", // OK
+        "../exercisedApps/joi", // OK
+        "../exercisedApps/qs", // OK
+        "../exercisedApps/typescript", // OK
+        "../exercisedApps/babel",
+        "../exercisedApps/esprima"
     ]
 }
 
@@ -183,11 +197,16 @@ function ignore(test) {
         // need support for getters & setter literals
         '/pm2', // uses getter/setter
 
-        // need support for getters & setter literals
+        // need support for getters & setter definitions
         '/cheerio', // uses getter/setter
         '/express', // uses getter/setter
         '/forever', // uses getter/setter
         '/gulp', // uses getter/setter
+        '/jade',
+        '/jshint',
+        '/uglifyjs',
+        '/jscs',
+        '/babel',
 
         'getter',
         'setter',
@@ -196,6 +215,9 @@ function ignore(test) {
         '/commander', // uses __proto__ assignment
         'less', // uses nasty polyfill hacks (see exercisedApps/less/node_modules/less/node_modules/graceful-fs/fs.js), fails during replay
         'bind_bug', // uses .callee
+
+        // bizare .exports usage?
+        '/joi',
 
         '_jalangi_',
         'sunspider' // only for performance testing

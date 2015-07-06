@@ -1,0 +1,6 @@
+{
+  "name": "trace-typing-benchmark_typescript",
+  "devDependencies": {
+    "typescript": "^1.4.1"
+  }
+}

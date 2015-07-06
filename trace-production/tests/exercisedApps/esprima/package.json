@@ -1,0 +1,6 @@
+{
+  "name": "trace-typing-benchmark_esprima",
+  "devDependencies": {
+    "esprima": "^2.4.1"
+  }
+}

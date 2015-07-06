@@ -1,0 +1,6 @@
+{
+  "name": "trace-typing-benchmark_validator",
+  "devDependencies": {
+    "validator": "^3.40.1"
+  }
+}

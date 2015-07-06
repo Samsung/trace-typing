@@ -1,0 +1,6 @@
+{
+  "name": "trace-typing-benchmark_jshint",
+  "devDependencies": {
+    "jshint": "^2.8.0"
+  }
+}

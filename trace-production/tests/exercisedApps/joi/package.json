@@ -1,0 +1,6 @@
+{
+  "name": "trace-typing-benchmark_joi",
+  "devDependencies": {
+    "joi": "^6.5.0"
+  }
+}

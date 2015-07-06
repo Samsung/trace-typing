@@ -1,0 +1,6 @@
+{
+  "name": "trace-typing-benchmark_xml2js",
+  "devDependencies": {
+    "xml2js": "^0.4.9"
+  }
+}

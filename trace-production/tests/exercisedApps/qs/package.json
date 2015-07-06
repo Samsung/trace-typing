@@ -1,0 +1,6 @@
+{
+  "name": "trace-typing-benchmark_qs",
+  "devDependencies": {
+    "qs": "^4.0.0"
+  }
+}

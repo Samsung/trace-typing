@@ -1,0 +1,6 @@
+{
+  "name": "trace-typing-benchmark_handlebars",
+  "devDependencies": {
+    "handlebars": "^3.0.3"
+  }
+}

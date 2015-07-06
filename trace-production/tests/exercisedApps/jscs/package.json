@@ -1,0 +1,6 @@
+{
+  "name": "trace-typing-benchmark_jscs",
+  "devDependencies": {
+    "jscs": "^1.13.1"
+  }
+}
