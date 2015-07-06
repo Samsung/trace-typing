@@ -193,7 +193,7 @@ function NativeSynthesisManager(traceBuilder) {
                     var descriptor = args[2];
                     var descriptorTmp = argsTmps[2];
                     if (descriptor.get || descriptor.set) {
-                        // console.warn("Defining getter/setter for .%s", name);
+                        // console.warn("%s: Defining getter/setter for .%s of ", J$.iidToLocation(J$.getGlobalIID(iid)), name, base);
                         throw new Error("Getters & setter definitions are not supported!")
                     }
                     var valueTmp = tmpManager.getIntermediaryTmp('defineProperty-' + operationCount);
