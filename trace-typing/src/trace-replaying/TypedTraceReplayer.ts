@@ -224,8 +224,9 @@ class AbstractedVariables implements Variables<TupleType> {
                 var BUGHUNT = false;
                 if (BUGHUNT) {
                     console.log("First type change at: %s: \n\t%s \n\t\t-> \n\t%s", JSON.stringify(abstractVariable), oldType === undefined ? "-" : TypeImpls.toPrettyString(oldType), TypeImpls.toPrettyString(resultType));
-                    if (oldType !== undefined)
+                    if (oldType !== undefined) {
                         TypeImpls.isTupleTypeEqual(resultType, oldType, true)
+                    }
                 }
                 this.dirty = true;
             }
@@ -294,7 +295,7 @@ function replayStatements(inferredEnv:Variables<TupleType>, varibleList:Variable
     do {
         iterationCount++;
         if (iterationCount > 10000) {
-            throw new Error("Not likely to terminate - probably a non-monotoniticy issue, set BUGHUN = true in TypedTraceReplayer.ts...");
+            throw new Error("Not likely to terminate - probably a non-monotoniticy issue, set BUGHUNT = true in TypedTraceReplayer.ts...");
         }
         var roundStart = new Date();
         // console.log("Type propagation round #%d", iterationCount);
