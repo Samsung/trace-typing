@@ -159,17 +159,18 @@ var allTests = {
         "../exercisedApps/pm2",
         "../exercisedApps/underscore",
 
+        // "new" benchmarks
         "../exercisedApps/jade",
-        "../exercisedApps/validator", // OK
+        "../exercisedApps/validator",
         "../exercisedApps/jshint",
         "../exercisedApps/uglifyjs",
-        "../exercisedApps/xml2js", // OK
-        "../exercisedApps/ejs", // OK
+        "../exercisedApps/xml2js",
+        "../exercisedApps/ejs",
         "../exercisedApps/jscs",
-        "../exercisedApps/handlebars", // OK
-        "../exercisedApps/joi", // OK
-        "../exercisedApps/qs", // OK
-        "../exercisedApps/typescript", // OK
+        "../exercisedApps/handlebars",
+        "../exercisedApps/joi",
+        "../exercisedApps/qs",
+        "../exercisedApps/typescript",
         "../exercisedApps/babel",
         "../exercisedApps/esprima"
     ]
@@ -214,6 +215,7 @@ function ignore(test) {
         // need replayer improvements
         '/commander', // uses __proto__ assignment
         'less', // uses nasty polyfill hacks (see exercisedApps/less/node_modules/less/node_modules/graceful-fs/fs.js), fails during replay
+        'ejs', // uses `with`
         'bind_bug', // uses .callee
 
         // bizare .exports usage?
