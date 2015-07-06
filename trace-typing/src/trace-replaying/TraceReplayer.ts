@@ -23,8 +23,12 @@ import VariableManager = require('../VariableManager');
 
 import MetaInformationExplainer = require("../MetaInformationExplainer");
 
+
+var DEBUG = false;
 function log(...any:any[]) {
-    console.log.apply(console, arguments);
+    if(DEBUG) {
+        console.log.apply(console, arguments);
+    }
 }
 /**
  * How a function was invoked
@@ -170,12 +174,14 @@ function replayStatements(statements:TraceStatement[], origVariables:Variables<V
     }
 
     function checkBaseForPropertyAccess(base:Value, baseVar:Variable) {
-        if (base.valueKind === AST.ValueKinds.Primitive) {
-            // about to fail.. show the history of the base
-            if (baseVar !== undefined) {
-                Extras.showDefinitionChain(baseVar, statements, explainer);
+        if(DEBUG) {
+            if (base.valueKind === AST.ValueKinds.Primitive) {
+                // about to fail.. show the history of the base
+                if (baseVar !== undefined) {
+                    Extras.showDefinitionChain(baseVar, statements, explainer);
+                }
+                throw new Error("Odd trace: Trying to access a property of an uncoerced primitive (" + AST.PrimitiveKind[(<Primitive>base).primitiveKind] + ")?!");
             }
-            throw new Error("Odd trace: Trying to access a property of an uncoerced primitive (" + AST.PrimitiveKind[(<Primitive>base).primitiveKind] + ")?!");
         }
     }
 
@@ -343,7 +349,7 @@ function replayStatements(statements:TraceStatement[], origVariables:Variables<V
     };
 
     statements.forEach(function (statement) {
-        // console.log(statement.toString());
+        log(statement.toString());
         statement.applyStatementVisitor(statementVisitor);
         currentTraceIndex.value++;
     });
