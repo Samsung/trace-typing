@@ -180,12 +180,15 @@ function ignore(test) {
         '/browserify', // Performance issue: > 5 minutes. Lots of time spent in instrumentation.
         '/grunt', // 'popping of empty shadow stack' (after a bunch of evals)
 
-        // need support for getters & setters
-        '/cheerio', // uses getter/setter
+        // need support for getters & setter literals
         '/pm2', // uses getter/setter
+
+        // need support for getters & setter literals
+        '/cheerio', // uses getter/setter
         '/express', // uses getter/setter
         '/forever', // uses getter/setter
         '/gulp', // uses getter/setter
+
         'getter',
         'setter',
 
