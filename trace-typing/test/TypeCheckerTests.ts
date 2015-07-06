@@ -24,7 +24,8 @@ var inferenceConfigs = (function () {
     return {
         fullIntersection: TypeLattices.makeFullIntersection,
         simpleSubtyping: TypeLattices.makeSimpleSubtyping,
-        simpleSubtypingWithUnion: TypeLattices.makeSimpleSubtypingWithUnion
+        simpleSubtypingWithUnion: TypeLattices.makeSimpleSubtypingWithUnion,
+        SJS: TypeLattices.makeSJS
     };
 })();
 
@@ -171,7 +172,7 @@ describe("TypeChecker unit tests", function () {
 describe("Type check traces and display table", function () {
     var bigApps = [/*'gulp', */ 'lodash', 'minimist', 'optparse', /*'express', 'grunt', */ 'lazy.js', 'underscore'/*, 'coffee-script'*/, 'escodegen'];
     //var bigApps = [/*'gulp', */ 'lodash', 'minimist', 'optparse', /*'express', 'grunt', */ 'lazy.js', 'underscore'/*, 'coffee-script'*/, /*'escodegen'*/];
-    describe("Type check everything ", function () {
+    describe.only("Type check everything ", function () {
         this.timeout(10 * 60 * 1000);
         var traceImporter:TraceImporter.TraceImporter = new TraceImporter.TraceImporter();
         traceImporter.getAllTraceFiles().forEach(function (file) {
@@ -182,17 +183,19 @@ describe("Type check traces and display table", function () {
                 return; // ignore
             }
             var allTypes = [
-                [inferenceConfigs.simpleSubtypingWithUnion, 'simpleSubtypingWithUnion']
-                , [inferenceConfigs.simpleSubtyping, 'simpleSubtyping']
-                , [inferenceConfigs.fullIntersection, 'intersection']
+                //[inferenceConfigs.simpleSubtypingWithUnion, 'simpleSubtypingWithUnion']
+                //, [inferenceConfigs.simpleSubtyping, 'simpleSubtyping']
+                //, [inferenceConfigs.fullIntersection, 'intersection']
+                , [inferenceConfigs.SJS, 'SJS']
             ];
             var allFunctionTypes = [
                 [TypeLattices.FunctionTypeLatticeKinds.FunctionIntersection, "IntersectionFunctions", false, false],
-                [TypeLattices.FunctionTypeLatticeKinds.FunctionIntersection, "IntersectionFunctionsWCallStack", false, true]
-                , [TypeLattices.FunctionTypeLatticeKinds.FunctionPointwiseLub, "SingleFunctions", true, false]
+                // [TypeLattices.FunctionTypeLatticeKinds.FunctionIntersection, "IntersectionFunctionsWCallStack", false, true]
+                //, [TypeLattices.FunctionTypeLatticeKinds.FunctionPointwiseLub, "SingleFunctions", true, false]
             ];
+
             var allVariableFlowInsensitivities = [
-                false
+                //false
                 , true
             ]; // TODO add inflationary
             allTypes.forEach((types:[()=>ValueTypeConfig, string])=> {
@@ -219,7 +222,7 @@ describe("Type check traces and display table", function () {
         });
     });
 
-    it.only("Display table & charts", function (done) {
+    it("Display table & charts", function (done) {
         // TODO refactor some of this to separate file
         this.timeout(5 * 60 * 1000);
         PersistentResults.load(PersistentResults.ExperimentResultKinds.TypeChecksResult, (results:AnnotatedExperimentResults<TypeChecksResult>[])=> {
