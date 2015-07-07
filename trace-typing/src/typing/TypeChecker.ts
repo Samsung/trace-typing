@@ -286,33 +286,35 @@ class PrototypePropertiesConstraint implements Constraint {
         var undefinedType = new TypeImpls.TupleTypeImpl([TypeImpls.constants.BooleanTop]);
         var nullType = new TypeImpls.TupleTypeImpl([TypeImpls.constants.NullTop]);
         var instance = TypeImpls.TupleAccess.getObject(this.instanceType);
-        var prototype = TypeImpls.TupleAccess.getObject(this.prototypeType);
-        for (var name in instance.properties) {
-            if (Misc.isAbstractFieldName(name)) { // FIXME this should not be required. Prototypes should not have abstract field names...
-                continue;
-            }
-            // the .prototype property is guaranteed to be variant wrt. the .prototype property in the prototype - otherwise there would be no need for the prototype...
-            if (name === 'prototype') {
-                continue;
-            }
-            if (Object.prototype.hasOwnProperty.call(prototype.properties, name)) {
-                var prototypeProperty = prototype.properties[name];
-                var instanceProperty = instance.properties[name];
-                // TODO simplify this, exploit that SJS ignores undefined & null on merge..
-                if (TypeImpls.isTupleTypeEqual(undefinedType, prototypeProperty) ||
-                    TypeImpls.isTupleTypeEqual(undefinedType, instanceProperty) ||
-                    (TypeImpls.isTupleTypeEqual(nullType, prototypeProperty) && TypeImpls.TupleAccess.isObject(instanceProperty)) ||
-                    (TypeImpls.isTupleTypeEqual(nullType, instanceProperty) && TypeImpls.TupleAccess.isObject(prototypeProperty))) {
+        if(TypeImpls.TupleAccess.isObject(this.prototypeType)) {
+            var prototype = TypeImpls.TupleAccess.getObject(this.prototypeType);
+            for (var name in instance.properties) {
+                if (Misc.isAbstractFieldName(name)) { // FIXME this should not be required. Prototypes should not have abstract field names...
                     continue;
                 }
-                // FIXME: This check ignores function types completely
-                var isCompatible = TypeImpls.isTupleTypeEqualIgnoringFunctionReceivers(prototypeProperty, instanceProperty);
-                if (!isCompatible) {
-                    if (FIND_TYPE_ERROR_SOURCE) {
-                        console.log("Mismatch found at .%s: %s vs. %s", name, TypeImpls.toPrettyString(prototypeProperty), TypeImpls.toPrettyString(instanceProperty));
-                        TypeImpls.isTupleTypeEqual(prototypeProperty, instanceProperty, true);
+                // the .prototype property is guaranteed to be variant wrt. the .prototype property in the prototype - otherwise there would be no need for the prototype...
+                if (name === 'prototype') {
+                    continue;
+                }
+                if (Object.prototype.hasOwnProperty.call(prototype.properties, name)) {
+                    var prototypeProperty = prototype.properties[name];
+                    var instanceProperty = instance.properties[name];
+                    // TODO simplify this, exploit that SJS ignores undefined & null on merge..
+                    if (TypeImpls.isTupleTypeEqual(undefinedType, prototypeProperty) ||
+                        TypeImpls.isTupleTypeEqual(undefinedType, instanceProperty) ||
+                        (TypeImpls.isTupleTypeEqual(nullType, prototypeProperty) && TypeImpls.TupleAccess.isObject(instanceProperty)) ||
+                        (TypeImpls.isTupleTypeEqual(nullType, instanceProperty) && TypeImpls.TupleAccess.isObject(prototypeProperty))) {
+                        continue;
                     }
-                    return false;
+                    // FIXME: This check ignores function types completely
+                    var isCompatible = TypeImpls.isTupleTypeEqualIgnoringFunctionReceivers(prototypeProperty, instanceProperty);
+                    if (!isCompatible) {
+                        if (FIND_TYPE_ERROR_SOURCE) {
+                            console.log("Mismatch found at .%s: %s vs. %s", name, TypeImpls.toPrettyString(prototypeProperty), TypeImpls.toPrettyString(instanceProperty));
+                            TypeImpls.isTupleTypeEqual(prototypeProperty, instanceProperty, true);
+                        }
+                        return false;
+                    }
                 }
             }
         }
@@ -453,7 +455,7 @@ class StatementMonitorVisitor implements TraceStatementVisitor<void> {
         var base = this.variables.read(e.base);
         var isObjectConstraint = new IsObjectConstraint(e, base);
         this.constraints.addErrorConstraint(isObjectConstraint);
-        if (this.enableSJSChecks && isObjectConstraint.isSatisfied()) {
+        if (this.enableSJSChecks && TypeImpls.TupleAccess.isObject(base)) {
             var baseObject = TypeImpls.TupleAccess.getObject(base);
             var fieldName = Misc.fieldNameAbstraction(e.fieldName, baseObject.objectClassification);
             this.constraints.addErrorConstraint(new PropertyExistsConstraint(e, baseObject, fieldName));
@@ -472,7 +474,7 @@ class StatementMonitorVisitor implements TraceStatementVisitor<void> {
             var iterable = this.variables.read(e.properties.sourceTmp);
             var isObjectConstraint = new IsObjectConstraint(e, iterable);
             this.constraints.addErrorConstraint(isObjectConstraint);
-            if (isObjectConstraint.isSatisfied()) {
+            if (TypeImpls.TupleAccess.isObject(iterable)) {
                 this.constraints.addErrorConstraint(new IsNotClassifiedAsObjectConstraint(e, TypeImpls.TupleAccess.getObject(iterable)));
             }
         }
