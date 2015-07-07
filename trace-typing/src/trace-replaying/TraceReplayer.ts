@@ -174,14 +174,12 @@ function replayStatements(statements:TraceStatement[], origVariables:Variables<V
     }
 
     function checkBaseForPropertyAccess(base:Value, baseVar:Variable) {
-        if(DEBUG) {
-            if (base.valueKind === AST.ValueKinds.Primitive) {
-                // about to fail.. show the history of the base
-                if (baseVar !== undefined) {
-                    Extras.showDefinitionChain(baseVar, statements, explainer);
-                }
-                throw new Error("Odd trace: Trying to access a property of an uncoerced primitive (" + AST.PrimitiveKind[(<Primitive>base).primitiveKind] + ")?!");
+        if (base.valueKind === AST.ValueKinds.Primitive) {
+            // about to fail.. show the history of the base
+            if (baseVar !== undefined) {
+                Extras.showDefinitionChain(baseVar, statements, explainer);
             }
+            throw new Error("Odd trace: Trying to access a property of an uncoerced primitive (" + AST.PrimitiveKind[(<Primitive>base).primitiveKind] + ")?!");
         }
     }
 
