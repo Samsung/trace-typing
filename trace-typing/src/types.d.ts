@@ -409,6 +409,7 @@ interface PrecisionConfig {
     // TODO merge these two options...
     contextInsensitiveVariables?: boolean
     callstackSensitiveVariables?: boolean
+    callstackSensitiveVariablesHeight?: number
 }
 interface Target {
     dir?: string
