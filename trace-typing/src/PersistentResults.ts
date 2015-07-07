@@ -19,6 +19,8 @@ var temp = require("temp");
 import fs = require("fs");
 import ConfigLoader = require("./ConfigLoader");
 
+var annotatedExperimentResultExtension = '.annotatedExperimentResults.json';
+
 /**
  * Loads experiment results from disk.
  * Only loads most recent instance of identical experiments.
@@ -54,9 +56,11 @@ export function load<T extends ExperimentResult>(kind:ExperimentResultKinds, cal
             c++;
             fs.readFile(dir + '/' + file, 'utf-8', function (err, data) {
                 if (err) throw err;
-                var result = JSON.parse(data);
-                if (result.results[0].kind === kind) {
-                    results.push(result); // manual type safety
+                if(file.indexOf(annotatedExperimentResultExtension) !== -1) {
+                    var result = JSON.parse(data);
+                    if (result.results[0].kind === kind) {
+                        results.push(result); // manual type safety
+                    }
                 }
                 if (0 === --c) {
                     callback(filterToMostRecent(results));
@@ -76,6 +80,7 @@ export function annotate<T extends ExperimentResult>(results:T[], sources:string
 
 }
 
+
 /**
  * Saves experiments results to disk
  */
@@ -85,7 +90,7 @@ export function save(result:AnnotatedExperimentResults<any>, callback:Function) 
         fs.mkdirSync(dir);
     }
     temp.open({
-        suffix: '.annotatedExperimentResults.json',
+        suffix: annotatedExperimentResultExtension,
         dir: dir
     }, function (err:any, info:any) {
         if (err) throw err;
