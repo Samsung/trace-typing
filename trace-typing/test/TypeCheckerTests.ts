@@ -5,6 +5,7 @@
 import assert = require("assert");
 import path = require("path");
 import fs = require("fs");
+import util = require('util');
 
 import PersistentResults = require("../src/PersistentResults")
 import Misc = require("../src/Misc")
@@ -20,6 +21,7 @@ import TraceReplayer = require("../src/trace-replaying/TraceReplayer");
 import TypedTraceReplayer = require("../src/trace-replaying/TypedTraceReplayer");
 import maker = require("../src/TraceMaker");
 import TypeCheckerTester = require('./TypeCheckerTester');
+import ConfigLoader = require("../src/ConfigLoader");
 var inferenceConfigs = (function () {
     return {
         fullIntersection: TypeLattices.makeFullIntersection,
@@ -169,14 +171,32 @@ describe("TypeChecker unit tests", function () {
         });
     });
 });
+interface ErrorAndWarningCounts {
+    errors: number
+    warnings: number
+}
+
+var warningGroup = [TypeChecker.ConstraintKinds.IsNotTop];
+// the rest of the violated constraint kinds are errors
+var errorGroup:TypeChecker.ConstraintKinds[] = [];
+for (var k in TypeChecker.ConstraintKinds) {
+    if (!isNaN(parseInt(k))) {
+        if (warningGroup.indexOf(+k) === -1) {
+            errorGroup.push(k);
+        }
+    }
+}
+
 describe("Type check traces and display table", function () {
-    var oldBigApps = [/*'gulp', */ 'lodash', 'minimist', 'optparse', /*'express', 'grunt', */ 'lazy.js', 'underscore', 'coffee-script', 'escodegen'];
-    oldBigApps = [];
-    var newBigApps = ['ejs','esprima','qs','typescript','validator','xml2js',];
+    var oldBigApps = [/*'gulp', */ 'lodash', 'minimist', 'optparse', /*'express', 'grunt', */ 'lazy.js', 'underscore', /*'coffee-script'*/, 'escodegen'];
+    //oldBigApps = [];
+    var newBigApps = ['esprima', 'qs', 'typescript', /*'validator',*/'xml2js', 'handlebars'];
+    //newBigApps = ['typescript'];
 
     var bigApps = oldBigApps.concat(newBigApps);
-    describe("Type check everything ", function () {
-        this.timeout(10 * 60 * 1000);
+    bigApps = ['handlebars'];
+    describe.only("Type check everything ", function () {
+        this.timeout(5 * 60 * 1000);
         var traceImporter:TraceImporter.TraceImporter = new TraceImporter.TraceImporter();
         traceImporter.getAllTraceFiles().forEach(function (file) {
             var noBigApps = false;
@@ -225,7 +245,70 @@ describe("Type check traces and display table", function () {
         });
     });
 
-    it.only("Display table & charts", function (done) {
+    it("Make pivot tables", function (done) {
+        function countErrorsAndWarnings(results:TypeChecksResult[]):ErrorAndWarningCounts {
+            var counts = {errors: 0, warnings: 0};
+            results.forEach((r:TypeChecksResult) => {
+                errorGroup.forEach(e => counts.errors += r.data[e].Static);
+                warningGroup.forEach(w => counts.warnings += r.data[w].Static);
+            });
+            return counts;
+        }
+
+        PersistentResults.load(PersistentResults.ExperimentResultKinds.TypeChecksResult, (results:AnnotatedExperimentResults<TypeChecksResult>[])=> {
+            results = results.filter(r => r.sources.some(f => f !== null && bigApps.some(a => f.indexOf(a) !== -1)));
+            var bySourceCSVLines = new Map<string, string[]>();
+            results.forEach((r:AnnotatedExperimentResults<TypeChecksResult>) => {
+                // parse the fully qualified source paths for each file
+                var source = r.sources.filter(s => s !== null && !!s.match(/\/node_modules\//)).map(s => {
+                    var match = s.match(/\/([^/]+)\/node_modules\//);
+                    return match[1 /* pick first */];
+                })[0 /* index should not matter */];
+
+                if (!bySourceCSVLines.has(source)) {
+                    bySourceCSVLines.set(source, []);
+                }
+
+                // parse the description format made in TypeCheckerTester.ts (silly)
+                var descriptionComponents = r.description.split(' w. ');
+                var fullTypeConfig = descriptionComponents[0];
+                var shortTypeConfig:string;
+                switch (fullTypeConfig) {
+                    case 'intersection':
+                        shortTypeConfig = 'simple'; // XXX seems like a weird naming mapping?!
+                        break;
+                    case 'simpleSubtyping':
+                        shortTypeConfig = 'subtyping';
+                        break;
+                    case 'simpleSubtypingWithUnion':
+                        shortTypeConfig = 'unions';
+                        break;
+                    default:
+                        throw new Error("Unhandled case: " + fullTypeConfig);
+                }
+
+                var precisionConfigObj:PrecisionConfig = JSON.parse(descriptionComponents[1]);
+                var contextSensitivity = (precisionConfigObj.contextInsensitiveVariables ? 'none' : precisionConfigObj.callstackSensitiveVariables ? 'stack' : 'full');
+                var flowSensitivity = (precisionConfigObj.flowInsensitiveVariables ? 'fi' : 'fs');
+                var precisionConfig = util.format("%s %s", flowSensitivity, contextSensitivity);
+
+                var line = util.format('"%s", "%s", "%d";', shortTypeConfig, precisionConfig, countErrorsAndWarnings(r.results).errors);
+                bySourceCSVLines.get(source).push(line);
+            });
+            // sort lines for prettyness
+            var outDir = ConfigLoader.load().experimentResultDirectory;
+            bySourceCSVLines.forEach((lines:string[], source:string) => {
+                lines.sort();
+                // lines.forEach(l => console.log("  %s", l));
+                var filename = path.resolve(outDir, source + "-static-error-counts.csv");
+                fs.writeFileSync(filename, lines.join('\n'));
+            });
+
+            done();
+        });
+    });
+
+    it("Display table & charts", function (done) {
         // TODO refactor some of this to separate file
         this.timeout(5 * 60 * 1000);
         PersistentResults.load(PersistentResults.ExperimentResultKinds.TypeChecksResult, (results:AnnotatedExperimentResults<TypeChecksResult>[])=> {
@@ -250,17 +333,6 @@ describe("Type check traces and display table", function () {
             }
 
             function makeStackedGroupedBarCharts(location:string):StackedGroupedBarCharts {
-                var warningGroup = [TypeChecker.ConstraintKinds.IsNotTop];
-                // the rest of the violated constraint kinds are errors
-                var errorGroup:TypeChecker.ConstraintKinds[] = [];
-                for(var k in TypeChecker.ConstraintKinds){
-                    if(!isNaN(parseInt(k))){
-                        if(warningGroup.indexOf(+k) === -1) {
-                            errorGroup.push(k);
-                        }
-                    }
-                }
-
                 var groups = [errorGroup, warningGroup];
                 var barchartData:BarChartData[] = groupedBySources_keys.map(sources => {
                     var sourceData = groupedBySourcesAndThenDescription.get(sources);
