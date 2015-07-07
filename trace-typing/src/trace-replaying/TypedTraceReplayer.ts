@@ -250,7 +250,7 @@ class CallstackAbstraction implements CallAbstractor {
     private scopeIDAbstraction = new Map<ScopeID, string>();
     private stackIDMap = new Map<string, number>();
 
-    constructor() {
+    constructor(k:number) {
         var stack:string[] = [];
         var scopeIDAbstraction = this.scopeIDAbstraction;
         var stackIDMap = this.stackIDMap;
@@ -261,6 +261,9 @@ class CallstackAbstraction implements CallAbstractor {
             },
             enter(scopeID:ScopeID) {
                 //console.log('enter(%s)', scopeID);
+                if(k != -1 && stack.length > k){
+                    stack = stack.slice(stack.length - k)
+                }
                 var stackString = stack.join("->");
                 if(!stackIDMap.has(stackString)){
                     stackIDMap.set(stackString, stackIDMap.size);
@@ -288,7 +291,7 @@ function replayStatements(inferredEnv:Variables<TupleType>, varibleList:Variable
     propagatedEnv: Variables<TupleType>
     inferredEnv: Variables<TupleType>
 } {
-    var callAbstraction = flowConfig.callstackSensitiveVariables ? new CallstackAbstraction() : new NoCallAbstraction();
+    var callAbstraction = flowConfig.callstackSensitiveVariables ? new CallstackAbstraction(flowConfig.callstackSensitiveVariablesHeight) : new NoCallAbstraction();
     var variablesDecorator = new AbstractedVariables(lattice, flowConfig, callAbstraction);
     var iterationCount = 0;
     var start = new Date();
