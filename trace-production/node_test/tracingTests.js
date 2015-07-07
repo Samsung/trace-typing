@@ -221,6 +221,12 @@ function ignore(test) {
         // bizare .exports usage?
         '/joi',
 
+        // bizarre non-stack discipline(!?) : TraceCollectionController never calls calls `stop` even though the process exits successfully..
+        '/handlebars',
+
+        // weird trace: uncoerced Number property access, should clearly be an array...
+        '/coffee-script',
+
         '_jalangi_',
         'sunspider' // only for performance testing
     ];
