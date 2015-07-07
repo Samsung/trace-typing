@@ -180,8 +180,9 @@ var warningGroup = [TypeChecker.ConstraintKinds.IsNotTop];
 // the rest of the violated constraint kinds are errors
 var errorGroup:TypeChecker.ConstraintKinds[] = [];
 for (var k in TypeChecker.ConstraintKinds) {
-    if (!isNaN(parseInt(k))) {
-        if (warningGroup.indexOf(+k) === -1) {
+    k = parseInt(k);
+    if (!isNaN(k)) {
+        if (warningGroup.indexOf(k) === -1) {
             errorGroup.push(k);
         }
     }
@@ -194,8 +195,8 @@ describe("Type check traces and display table", function () {
     //newBigApps = ['typescript'];
 
     var bigApps = oldBigApps.concat(newBigApps);
-    bigApps = ['handlebars'];
-    describe.only("Type check everything ", function () {
+    // `bigApps = ['typescript'];
+    describe("Type check everything ", function () {
         this.timeout(5 * 60 * 1000);
         var traceImporter:TraceImporter.TraceImporter = new TraceImporter.TraceImporter();
         traceImporter.getAllTraceFiles().forEach(function (file) {
@@ -209,12 +210,13 @@ describe("Type check traces and display table", function () {
                 [inferenceConfigs.simpleSubtypingWithUnion, 'simpleSubtypingWithUnion']
                 , [inferenceConfigs.simpleSubtyping, 'simpleSubtyping']
                 , [inferenceConfigs.fullIntersection, 'intersection']
-                //, [inferenceConfigs.SJS, 'SJS']
+                , [inferenceConfigs.SJS, 'SJS']
             ];
             var allFunctionTypes = [
-                [TypeLattices.FunctionTypeLatticeKinds.FunctionIntersection, "IntersectionFunctions", false, false],
-                [TypeLattices.FunctionTypeLatticeKinds.FunctionIntersection, "IntersectionFunctionsWCallStack", false, true]
-                , [TypeLattices.FunctionTypeLatticeKinds.FunctionPointwiseLub, "SingleFunctions", true, false]
+                [TypeLattices.FunctionTypeLatticeKinds.FunctionIntersection, "IntersectionFunctions", false, false, -1]
+                , [TypeLattices.FunctionTypeLatticeKinds.FunctionIntersection, "IntersectionFunctionsWCallStack", false, true, -1]
+                , [TypeLattices.FunctionTypeLatticeKinds.FunctionIntersection, "IntersectionFunctionsWCallStack-1", false, true, 1]
+                , [TypeLattices.FunctionTypeLatticeKinds.FunctionPointwiseLub, "SingleFunctions", true, false, -1]
             ];
 
             var allVariableFlowInsensitivities = [
@@ -222,12 +224,13 @@ describe("Type check traces and display table", function () {
                 , true
             ]; // TODO add inflationary
             allTypes.forEach((types:[()=>ValueTypeConfig, string])=> {
-                allFunctionTypes.forEach((functionTypes:[TypeLattices.FunctionTypeLatticeKinds, string, boolean, boolean])=> {
+                allFunctionTypes.forEach((functionTypes:[TypeLattices.FunctionTypeLatticeKinds, string, boolean, boolean, number])=> {
                     allVariableFlowInsensitivities.forEach(vars => {
                         var flowConfig:PrecisionConfig = {
                             flowInsensitiveVariables: vars,
                             contextInsensitiveVariables: functionTypes[2],
-                            callstackSensitiveVariables: functionTypes[3]
+                            callstackSensitiveVariables: functionTypes[3],
+                            callstackSensitiveVariablesHeight: functionTypes[4]
                         };
                         var typeSystemDescription = types[1] + ' with ' + functionTypes[1] + " and " + JSON.stringify(flowConfig);
                         it("... in particular: " + path.basename(file) + " " + typeSystemDescription, function (done) {
@@ -236,7 +239,7 @@ describe("Type check traces and display table", function () {
                                     done(err);
                                     return;
                                 }
-                                TypeCheckerTester.testTrace(err, imported.trace, -1, types[0], done, flowConfig, types[1]);
+                                TypeCheckerTester.testTrace(err, imported.trace, -1, types[0], done, flowConfig, types[1], types[1] === 'SJS');
                             });
                         });
                     });
@@ -248,10 +251,13 @@ describe("Type check traces and display table", function () {
     it("Make pivot tables", function (done) {
         function countErrorsAndWarnings(results:TypeChecksResult[]):ErrorAndWarningCounts {
             var counts = {errors: 0, warnings: 0};
+            console.log("countErrorsAndWarnings");
             results.forEach((r:TypeChecksResult) => {
+                console.log(r);
                 errorGroup.forEach(e => counts.errors += r.data[e].Static);
                 warningGroup.forEach(w => counts.warnings += r.data[w].Static);
             });
+            console.log("/countErrorsAndWarnings: ", counts);
             return counts;
         }
 
@@ -283,16 +289,21 @@ describe("Type check traces and display table", function () {
                     case 'simpleSubtypingWithUnion':
                         shortTypeConfig = 'unions';
                         break;
+                    case 'SJS':
+                        shortTypeConfig = 'SJS';
+                        break;
                     default:
                         throw new Error("Unhandled case: " + fullTypeConfig);
                 }
 
                 var precisionConfigObj:PrecisionConfig = JSON.parse(descriptionComponents[1]);
-                var contextSensitivity = (precisionConfigObj.contextInsensitiveVariables ? 'none' : precisionConfigObj.callstackSensitiveVariables ? 'stack' : 'full');
+                var kSuffix = (precisionConfigObj.callstackSensitiveVariablesHeight !== -1) ? '-' + precisionConfigObj.callstackSensitiveVariablesHeight : '';
+                var contextSensitivity = (precisionConfigObj.contextInsensitiveVariables ? 'none' : precisionConfigObj.callstackSensitiveVariables ? 'stack' + kSuffix : 'full');
                 var flowSensitivity = (precisionConfigObj.flowInsensitiveVariables ? 'fi' : 'fs');
                 var precisionConfig = util.format("%s %s", flowSensitivity, contextSensitivity);
 
                 var line = util.format('"%s", "%s", "%d";', shortTypeConfig, precisionConfig, countErrorsAndWarnings(r.results).errors);
+                console.log('csving: %s', line);
                 bySourceCSVLines.get(source).push(line);
             });
             // sort lines for prettyness
@@ -308,7 +319,7 @@ describe("Type check traces and display table", function () {
         });
     });
 
-    it("Display table & charts", function (done) {
+    it.only("Display table & charts", function (done) {
         // TODO refactor some of this to separate file
         this.timeout(5 * 60 * 1000);
         PersistentResults.load(PersistentResults.ExperimentResultKinds.TypeChecksResult, (results:AnnotatedExperimentResults<TypeChecksResult>[])=> {
@@ -348,15 +359,23 @@ describe("Type check traces and display table", function () {
                                         numberRow.push(value || 0);
                                     })
                             );
+
                             row = [description].concat(numberRow);
                         } else {
                             row = [description, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1];
                         }
                         return row;
                     });
+                    var simpleSources:string;
+                    var sourceMatch = sources.match(/\/([^/]+)\/node_modules\//);
+                    if (sourceMatch) {
+                        simpleSources = sourceMatch[1];
+                    } else {
+                        simpleSources = sources;
+                    }
                     var chart:BarChartData = {
                         rows: rows,
-                        title: 'Type errors and warnings for ' + sources
+                        title: 'Type errors and warnings for ' + simpleSources
                     };
                     return chart;
                 });
@@ -400,16 +419,9 @@ describe("Type check traces and display table", function () {
                 }
             });
             descriptions.sort();
-            var constraintKinds = [
-                TypeChecker.ConstraintKinds.IsSuccessfulCall,
-                TypeChecker.ConstraintKinds.IsSuccessfulReturn,
-                TypeChecker.ConstraintKinds.IsObject,
-                TypeChecker.ConstraintKinds.IsFunction,
-                TypeChecker.ConstraintKinds.PropertyExists,
-                TypeChecker.ConstraintKinds.IsAssignmentCompatible,
-                TypeChecker.ConstraintKinds.IsNotTop
-            ];
+
             var locations = ['Static', 'Dynamic'];
+
             //locations.forEach(location => constraintKinds.forEach(constraintKind => {
             //    var table = makeTable(location, constraintKind);
             //    var lines: string[]= [];
