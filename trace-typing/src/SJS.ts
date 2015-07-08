@@ -332,7 +332,6 @@ export function setMROAndMRW(object:ObjectType, lattice:CompleteLattice<TupleTyp
     var MRO = new Map<string, TupleType>();
     var MRW = new Map<string, TupleType>();
 
-    // XXX MRO and MRW are here defined as the RO and RW of the method receivers! SJS defines it very differently!
     methods.map(m => m.base).forEach(receiver => {
         if (TypeImpls.TupleAccess.isObject(receiver)) {
             var receiverObject = TypeImpls.TupleAccess.getObject(receiver);

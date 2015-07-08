@@ -303,44 +303,52 @@ interface FunctionEntry {
 class ParameterTypesCallstackAbstraction implements CallAbstractor {
     private monitor:CallMonitor;
     private scopeIDAbstraction = new Map<ScopeID, string>();
-    private stackIDMap = new Map<string/*iid. Not strictly required, but it gives a large speedup */, Map<FunctionEntry, string /* id */>>();
-
+    private stackIDMap = new Map<string/*iid. Not strictly required, but it gives a large speedup */, Map<FunctionEntry[], string /* id */>>();
     constructor(k:number) {
         var stack:FunctionEntry[] = [];
         var scopeIDAbstraction = this.scopeIDAbstraction;
         var stackIDMap = this.stackIDMap;
         var nextParameters:TupleType[];
 
-        function getRepresentative(entry:FunctionEntry, candidateMap:Map<FunctionEntry, string>) {
-            var candidates:FunctionEntry[] = [];
-            candidateMap.forEach((v, k) => candidates.push(k));
-            var iid = entry.iid;
-            var matches = candidates.filter(c => {
-                var equalIID = iid === c.iid;
-                if (!equalIID) {
+        function getRepresentative(entryStack:FunctionEntry[], candidateStacksMap:Map<FunctionEntry[], string>): FunctionEntry[] {
+            var candidateStacks:FunctionEntry[][] = [];
+            candidateStacksMap.forEach((v, k) => candidateStacks.push(k));
+            var entryStackTop = entryStack[entryStack.length - 1];
+            var iid = entryStackTop.iid;
+            var stackMatches = candidateStacks.filter(candidateStack => {
+                if(candidateStack.length !== entryStack.length){
                     return false;
                 }
-                if (entry.parameters.length !== c.parameters.length) {
-                    return false;
-                }
-                for (var i = 0; i < entry.parameters.length; i++) {
-                    var entryParameter = entry.parameters[i];
-                    var candidateParameter = c.parameters[i];
-                    if (!TypeImpls.isTupleTypeEqual(entryParameter, candidateParameter)) {
+                for(var stackIndex = 0; stackIndex < candidateStack.length; stackIndex++) {
+                    var entryStackElement = entryStack[stackIndex];
+                    var candidateStackElement = candidateStack[stackIndex];
+                    var equalIID = iid === candidateStackElement.iid;
+                    if (!equalIID) {
                         return false;
+                    }
+
+                    if (entryStackElement.parameters.length !== candidateStackElement.parameters.length) {
+                        return false;
+                    }
+                    for (var i = 0; i < entryStackElement.parameters.length; i++) {
+                        var entryParameter = entryStackElement.parameters[i];
+                        var candidateParameter = candidateStackElement.parameters[i];
+                        if (!TypeImpls.isTupleTypeEqual(entryParameter, candidateParameter)) {
+                            return false;
+                        }
                     }
                 }
                 return true;
             });
 
-            var representative:FunctionEntry;
-            if (matches.length === 0) {
-                stackIDMap.get(entry.iid).set(entry, iid + stackIDMap.get(iid).size + '');
-                representative = entry;
-            } else if (matches.length === 1) {
-                representative = matches[0];
+            var representative:FunctionEntry[];
+            if (stackMatches.length === 0) {
+                stackIDMap.get(entryStackTop.iid).set(entryStack, iid + stackIDMap.get(iid).size + '');
+                representative = entryStack;
+            } else if (stackMatches.length === 1) {
+                representative = stackMatches[0];
             } else {
-                throw new Error("Multiple FunctionEntry matches: " + matches);
+                throw new Error("Multiple FunctionEntry matches: " + stackMatches);
             }
             return representative;
         }
@@ -359,9 +367,9 @@ class ParameterTypesCallstackAbstraction implements CallAbstractor {
                 }
 
                 if (!stackIDMap.has(iid)) {
-                    stackIDMap.set(iid, new Map<FunctionEntry, string>());
+                    stackIDMap.set(iid, new Map<FunctionEntry[], string>());
                 }
-                var representative = getRepresentative(entry, stackIDMap.get(iid));
+                var representative = getRepresentative(stack.slice(), stackIDMap.get(iid));
                 scopeIDAbstraction.set(scopeID, '' + stackIDMap.get(iid).get(representative))
             },
             return(){
@@ -387,7 +395,7 @@ function replayStatements(inferredEnv:Variables<TupleType>, varibleList:Variable
 } {
     var callstackAbstraction:CallAbstractor;
 
-    if (true) {
+    if (false) {
         callstackAbstraction = new SyntacticCallstackAbstraction(flowConfig.callstackSensitiveVariablesHeight);
     } else {
         callstackAbstraction = new ParameterTypesCallstackAbstraction(flowConfig.callstackSensitiveVariablesHeight);
