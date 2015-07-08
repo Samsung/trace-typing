@@ -23,7 +23,12 @@ function setupCharts(charts, columns, groupSizes) {
             var uniformMax = -Infinity;
             for (var rowIndex = 1; rowIndex < rows.length; rowIndex++) {
                 var row = rows[rowIndex];
-                uniformMax = Math.max(uniformMax, Math.max.apply(undefined, row.slice(1)));
+                var disable = true;
+                if(disable) {
+                    uniformMax = 0
+                }else {
+                    uniformMax = Math.max(uniformMax, Math.max.apply(undefined, row.slice(1)));
+                }
             }
             var uniformMaxRow = ["UniformMaxValueRow"].concat(rows[0].slice(1).map(function () {
                 return uniformMax;
