@@ -22,7 +22,7 @@ var path = require('path'),
     runner = require("../src/Tracing_runner");
 
 
-var DEBUG = true;
+var DEBUG = false;
 
 var usesRelativeRequire = new Set();
 usesRelativeRequire.add("array_length");
@@ -217,6 +217,7 @@ function ignore(test) {
         'less', // uses nasty polyfill hacks (see exercisedApps/less/node_modules/less/node_modules/graceful-fs/fs.js), fails during replay
         'ejs', // uses `with`
         'bind_bug', // uses .callee
+        '/validator', // explicitly ignored (unknown reason, need to check up)
 
         // bizare .exports usage?
         '/joi',
