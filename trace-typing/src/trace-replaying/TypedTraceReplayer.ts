@@ -19,8 +19,8 @@ interface SimpleTypes {
 }
 
 interface CallMonitor {
-    enter(scopeID:ScopeID):void
-    call(iid:string):void
+    enter(iid:string, scopeID:ScopeID):void
+    call(iid:string, args:TupleType[]):void
     return():void
 }
 
@@ -123,12 +123,12 @@ class StatementDataflowVisitor implements TraceStatementVisitor<void> {
                 this.fixedVariables.add(e.properties.baseTmp);
                 e.properties.argsTmps.forEach(argTmp => this.fixedVariables.add(argTmp));
                 if (this.callMonitor) {
-                    this.callMonitor.enter(e.properties.scopeID);
+                    this.callMonitor.enter(e.meta.iid, e.properties.scopeID);
                 }
                 break;
             case AST.InfoKinds.FunctionInvocation:
                 if (this.callMonitor) {
-                    this.callMonitor.call(e.meta.iid);
+                    this.callMonitor.call(e.meta.iid, e.properties.argsTmps.map(tmp => this.variables.read(tmp)));
                 }
                 break;
             case AST.InfoKinds.FunctionReturn:
@@ -151,6 +151,8 @@ class StatementDataflowVisitor implements TraceStatementVisitor<void> {
     }
 }
 
+// FIXME: identify the rare non-monotonicity bug
+var nonMonotonicityHack:Map<Variable, number>;
 /**
  * Implementation of flow & context insensitivity.
  *
@@ -221,9 +223,17 @@ class AbstractedVariables implements Variables<TupleType> {
 
         if (oldType === undefined || !TypeImpls.isTupleTypeEqual(resultType, oldType)) {
             if (!this.dirty && doWeakUpdate) {
+                if (!nonMonotonicityHack.has(abstractVariable)) {
+                    nonMonotonicityHack.set(abstractVariable, 0);
+                }
+                nonMonotonicityHack.set(abstractVariable, nonMonotonicityHack.get(abstractVariable) + 1);
+                if (nonMonotonicityHack.get(abstractVariable) > 50) {
+                    resultType = this.lattice.lub(resultType, new TypeImpls.TupleTypeImpl([TypeImpls.constants.ObjectTop]));
+                }
                 var BUGHUNT = false;
                 if (BUGHUNT) {
                     console.log("First type change at: %s: \n\t%s \n\t\t-> \n\t%s", JSON.stringify(abstractVariable), oldType === undefined ? "-" : TypeImpls.toPrettyString(oldType), TypeImpls.toPrettyString(resultType));
+                    console.log("# changes here: %d", nonMonotonicityHack.get(abstractVariable));
                     if (oldType !== undefined) {
                         TypeImpls.isTupleTypeEqual(resultType, oldType, true)
                     }
@@ -245,7 +255,7 @@ class NoCallAbstraction implements CallAbstractor {
     }
 }
 
-class CallstackAbstraction implements CallAbstractor {
+class SyntacticCallstackAbstraction implements CallAbstractor {
     private monitor:CallMonitor;
     private scopeIDAbstraction = new Map<ScopeID, string>();
     private stackIDMap = new Map<string, number>();
@@ -261,14 +271,98 @@ class CallstackAbstraction implements CallAbstractor {
             },
             enter(scopeID:ScopeID) {
                 //console.log('enter(%s)', scopeID);
-                if(k != -1 && stack.length > k){
+                if (k != -1 && stack.length > k) {
                     stack = stack.slice(stack.length - k)
                 }
                 var stackString = stack.join("->");
-                if(!stackIDMap.has(stackString)){
+                if (!stackIDMap.has(stackString)) {
                     stackIDMap.set(stackString, stackIDMap.size);
                 }
                 scopeIDAbstraction.set(scopeID, '' + stackIDMap.get(stackString))
+            },
+            return(){
+                //console.log('return');
+                stack.pop();
+            }
+        };
+    }
+
+    public abstract(scopeID:ScopeID):ScopeID {
+        return this.scopeIDAbstraction.get(scopeID);
+    }
+
+    public getMonitor():CallMonitor {
+        return this.monitor;
+    }
+
+}
+interface FunctionEntry {
+    iid: string
+    parameters: TupleType[]
+}
+class ParameterTypesCallstackAbstraction implements CallAbstractor {
+    private monitor:CallMonitor;
+    private scopeIDAbstraction = new Map<ScopeID, string>();
+    private stackIDMap = new Map<string/*iid. Not strictly required, but it gives a large speedup */, Map<FunctionEntry, string /* id */>>();
+
+    constructor(k:number) {
+        var stack:FunctionEntry[] = [];
+        var scopeIDAbstraction = this.scopeIDAbstraction;
+        var stackIDMap = this.stackIDMap;
+        var nextParameters:TupleType[];
+
+        function getRepresentative(entry:FunctionEntry, candidateMap:Map<FunctionEntry, string>) {
+            var candidates:FunctionEntry[] = [];
+            candidateMap.forEach((v, k) => candidates.push(k));
+            var iid = entry.iid;
+            var matches = candidates.filter(c => {
+                var equalIID = iid === c.iid;
+                if (!equalIID) {
+                    return false;
+                }
+                if (entry.parameters.length !== c.parameters.length) {
+                    return false;
+                }
+                for (var i = 0; i < entry.parameters.length; i++) {
+                    var entryParameter = entry.parameters[i];
+                    var candidateParameter = c.parameters[i];
+                    if (!TypeImpls.isTupleTypeEqual(entryParameter, candidateParameter)) {
+                        return false;
+                    }
+                }
+                return true;
+            });
+
+            var representative:FunctionEntry;
+            if (matches.length === 0) {
+                stackIDMap.get(entry.iid).set(entry, iid + stackIDMap.get(iid).size + '');
+                representative = entry;
+            } else if (matches.length === 1) {
+                representative = matches[0];
+            } else {
+                throw new Error("Multiple FunctionEntry matches: " + matches);
+            }
+            return representative;
+        }
+
+        this.monitor = {
+            call(iid:string, args:TupleType[]) {
+                nextParameters = args;
+            },
+            enter(iid:string, scopeID:ScopeID) {
+                var entry = {iid: iid, parameters: nextParameters};
+                nextParameters = undefined;
+                stack.push(entry);
+                //console.log('enter(%s)', scopeID);
+                if (k != -1 && stack.length > k) {
+                    stack = stack.slice(stack.length - k)
+                }
+
+                if (!stackIDMap.has(iid)) {
+                    stackIDMap.set(iid, new Map<FunctionEntry, string>());
+                }
+                var representative = getRepresentative(entry, stackIDMap.get(iid));
+                scopeIDAbstraction.set(scopeID, '' + stackIDMap.get(iid).get(representative))
             },
             return(){
                 //console.log('return');
@@ -291,7 +385,15 @@ function replayStatements(inferredEnv:Variables<TupleType>, varibleList:Variable
     propagatedEnv: Variables<TupleType>
     inferredEnv: Variables<TupleType>
 } {
-    var callAbstraction = flowConfig.callstackSensitiveVariables ? new CallstackAbstraction(flowConfig.callstackSensitiveVariablesHeight) : new NoCallAbstraction();
+    var callstackAbstraction:CallAbstractor;
+
+    if (true) {
+        callstackAbstraction = new SyntacticCallstackAbstraction(flowConfig.callstackSensitiveVariablesHeight);
+    } else {
+        callstackAbstraction = new ParameterTypesCallstackAbstraction(flowConfig.callstackSensitiveVariablesHeight);
+    }
+
+    var callAbstraction = flowConfig.callstackSensitiveVariables ? callstackAbstraction : new NoCallAbstraction();
     var variablesDecorator = new AbstractedVariables(lattice, flowConfig, callAbstraction);
     var iterationCount = 0;
     var start = new Date();
@@ -329,6 +431,7 @@ export function replayTrace(variableValues:Map<Variable, Value[]>, variableList:
     propagatedEnv: Variables<TupleType>
     inferredEnv: Variables<TupleType>
 } {
+    nonMonotonicityHack = new Map<Variable, number>();
     // console.log("Flow-less type inference...");
     var inferencer:TypeInferencer = new TypeInferencer.TypeInferencerImpl(valueTypeConfig.types, valueTypeConfig.initialFunctionTypeMaker, !!valueTypeConfig.useSJSAscription);
     var inferredEnv = new State.VariablesImpl<TupleType>();
