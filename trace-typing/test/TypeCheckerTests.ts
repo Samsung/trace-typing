@@ -154,7 +154,13 @@ describe("TypeChecker unit tests", function () {
         describe("function assignments", function () {
             // TODO make tests
         });
-
+        describe.only("Paper", function () {
+            var config = inferenceConfigs.simpleSubtyping;
+            var flowConfig = {flowInsensitiveVariables: false, contextInsensitiveVariables: true};
+            it('Should handle PaperExample1', function (done) {
+                testFile('fixtures/PaperExample1.js', 0, config, done, flowConfig);
+            });
+        });
         describe("Fixpointing", function () {
             var config = inferenceConfigs.simpleSubtyping;
             var flowConfig = {flowInsensitiveVariables: true, contextInsensitiveVariables: true};
@@ -210,7 +216,7 @@ describe("Type check traces and display table", function () {
                 [inferenceConfigs.simpleSubtypingWithUnion, 'simpleSubtypingWithUnion']
                 , [inferenceConfigs.simpleSubtyping, 'simpleSubtyping']
                 , [inferenceConfigs.fullIntersection, 'intersection']
-                , [inferenceConfigs.SJS, 'SJS']
+//                , [inferenceConfigs.SJS, 'SJS']
             ];
             var allFunctionTypes = [
                 [TypeLattices.FunctionTypeLatticeKinds.FunctionIntersection, "IntersectionFunctions", false, false, -1]
@@ -319,7 +325,7 @@ describe("Type check traces and display table", function () {
         });
     });
 
-    it.only("Display table & charts", function (done) {
+    it("Display table & charts", function (done) {
         // TODO refactor some of this to separate file
         this.timeout(5 * 60 * 1000);
         PersistentResults.load(PersistentResults.ExperimentResultKinds.TypeChecksResult, (results:AnnotatedExperimentResults<TypeChecksResult>[])=> {
