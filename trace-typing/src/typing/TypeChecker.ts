@@ -70,7 +70,7 @@ class IsSuccessfullReturnConstraint implements Constraint {
     }
 
     getFailureMessage() {
-        return util.format("Function call does not match any signatures");
+        return util.format("Function call return does not match any signatures");
     }
 }
 class IsNotTopConstraint implements Constraint {
@@ -331,6 +331,9 @@ class ExpressionMonitorVisitor implements TraceExpressionVisitor<void> {
     }
 
     visitRead(e:Read):void {
+        if(e.source.named) {
+          // console.log("%s :: %s", e.source.name, TypeImpls.toPrettyString(this.variables.read(e.source)));
+        }
     }
 
     visitFieldRead(e:FieldRead):void {
