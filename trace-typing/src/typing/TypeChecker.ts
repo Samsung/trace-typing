@@ -107,7 +107,7 @@ class IsNotTopFunctionConstraint implements Constraint {
     }
 }
 class IsNotAbstractReceiverConstraint implements Constraint {
-    public kind = ConstraintKinds.IsObject;
+    public kind = ConstraintKinds.IsAbstractObject;
 
     constructor(public element:TraceElement, private type:ObjectType) {
 
@@ -243,12 +243,15 @@ class PropertyExistsConstraint implements Constraint {
     }
 
     isSatisfied() {
+        if(this.type === undefined){
+            return false;
+        }
         if (Misc.isAbstractFieldName(this.name)) {
             return true;
         }
         var hasProperty = Object.prototype.hasOwnProperty.call(this.type.properties, this.name);
         var property = this.type.properties[this.name];
-        return hasProperty && !TypeImpls.isTupleTypeEqual(property, TypeImpls.constants.Bottom);
+        return hasProperty;// && !TypeImpls.isTupleTypeEqual(property, TypeImpls.constants.Bottom);
     }
 
     getFailureMessage() {
@@ -363,13 +366,15 @@ class ExpressionMonitorVisitor implements TraceExpressionVisitor<void> {
         var isObjectConstraint = new IsObjectConstraint(e, base);
         this.constraints.addErrorConstraint(isObjectConstraint);
         this.constraints.addWarningConstraint(new IsNotTopConstraint(e, base));
-        if (TypeImpls.TupleAccess.isObject(<TupleType>base)) {
+        if (TypeImpls.TupleAccess.isObject(base)) {
             var baseObject = TypeImpls.TupleAccess.getObject(<TupleType>base);
             var fieldName = Misc.fieldNameAbstraction(e.fieldName, baseObject.objectClassification);
             if (this.enableSJSChecks) {
                 this.constraints.addErrorConstraint(new IsClassificationValidAccessConstraint(e, baseObject, fieldName, dynamic, false));
             }
             this.constraints.addErrorConstraint(new PropertyExistsConstraint(e, baseObject, fieldName));
+        }else{
+            this.constraints.addErrorConstraint(new PropertyExistsConstraint(e, undefined, "XXX"));
         }
     }
 
@@ -483,6 +488,9 @@ class StatementMonitorVisitor implements TraceStatementVisitor<void> {
                 //    throw new Error("Incompatibility for ." + fieldName);
                 //}
             }
+        }else{
+            var propertyExistsConstraint = new PropertyExistsConstraint(e, undefined, "XXX");
+            this.constraints.addErrorConstraint(propertyExistsConstraint);
         }
     }
 
@@ -677,7 +685,8 @@ check(statements:TraceStatement[], variables:Variables<TupleType>, inferredEnv:V
     };
     var constraints:Constraints = {
         addErrorConstraint(constraint:Constraint) {
-            if (!constraint.isSatisfied() && enabledConstraintsSet.has(constraint.kind)) {
+            var satisfied = constraint.isSatisfied();
+            if (!satisfied && enabledConstraintsSet.has(constraint.kind)) {
                 var message = constraint.getFailureMessage();
                 logger.error(constraint.element.meta.iid, message, constraint.kind);
                 if (FIND_TYPE_ERROR_SOURCE)
@@ -753,7 +762,8 @@ ConstraintKinds {
     PropertyIsWritable,
     IsClassificationValidAccess,
     PrototypePropertyInvariance,
-    PrototypalAssignment
+    PrototypalAssignment,
+    IsAbstractObject
 }
 export interface IIDRelatedConstaintFailureMessage extends IIDRelatedMessage {
     constraintKind: ConstraintKinds
