@@ -185,11 +185,16 @@ interface ErrorAndWarningCounts {
 var warningGroup = [TypeChecker.ConstraintKinds.IsNotTop];
 // the rest of the violated constraint kinds are errors
 var errorGroup:TypeChecker.ConstraintKinds[] = [];
-for (var k in TypeChecker.ConstraintKinds) {
-    k = parseInt(k);
-    if (!isNaN(k)) {
-        if (warningGroup.indexOf(k) === -1) {
-            errorGroup.push(k);
+var SJSSpecificsOnly = true;
+if(SJSSpecificsOnly){
+    errorGroup = [TypeChecker.ConstraintKinds.IsClassificationValidAccess, TypeChecker.ConstraintKinds.IsNotClassifiedAsObject, TypeChecker.ConstraintKinds.PropertyIsWritable, TypeChecker.ConstraintKinds.PrototypalAssignment, TypeChecker.ConstraintKinds.PrototypePropertyInvariance]
+}else {
+    for (var k in TypeChecker.ConstraintKinds) {
+        k = parseInt(k);
+        if (!isNaN(k)) {
+            if (warningGroup.indexOf(k) === -1) {
+                errorGroup.push(k);
+            }
         }
     }
 }
@@ -200,7 +205,7 @@ var newBigApps = ['esprima', 'qs', 'typescript', /*'validator',*/'xml2js', 'hand
 //newBigApps = ['typescript'];
 
 var bigApps = oldBigApps.concat(newBigApps);
-bigApps = ['xml2js'];
+// bigApps = ['xml2js'];
 var noBigApps = false;
 var onlyBigApps = true;
 function ignoreFile(file:string) {
@@ -209,7 +214,7 @@ function ignoreFile(file:string) {
     return is_JSON_NaN_bug || (onlyBigApps && !isBigApp) || (noBigApps && isBigApp);
 }
 describe("Type check traces and display table", function () {
-    describe.only("Type check everything ", function () {
+    describe("Type check everything ", function () {
         this.timeout(5 * 60 * 1000);
         var traceImporter:TraceImporter.TraceImporter = new TraceImporter.TraceImporter();
         traceImporter.getAllTraceFiles().forEach(function (file) {
@@ -218,21 +223,21 @@ describe("Type check traces and display table", function () {
                 return; // ignore
             }
             var allTypes = [
-                [inferenceConfigs.simpleSubtypingWithUnion, 'simpleSubtypingWithUnion']
+//                [inferenceConfigs.simpleSubtypingWithUnion, 'simpleSubtypingWithUnion']
 //                , [inferenceConfigs.simpleSubtyping, 'simpleSubtyping']
-                , [inferenceConfigs.fullIntersection, 'intersection']
-//                , [inferenceConfigs.SJS, 'SJS']
+//                , [inferenceConfigs.fullIntersection, 'intersection']
+                , [inferenceConfigs.SJS, 'SJS']
             ];
             var allFunctionTypes = [
-//                [TypeLattices.FunctionTypeLatticeKinds.FunctionIntersection, "IntersectionFunctions", false, false, -1]
-                //, [TypeLattices.FunctionTypeLatticeKinds.FunctionIntersection, "IntersectionFunctionsWCallStack", false, true, -1]
-                //, [TypeLattices.FunctionTypeLatticeKinds.FunctionIntersection, "IntersectionFunctionsWCallStack-1", false, true, 1]
+                [TypeLattices.FunctionTypeLatticeKinds.FunctionIntersection, "IntersectionFunctions", false, false, -1]
+              //  , [TypeLattices.FunctionTypeLatticeKinds.FunctionIntersection, "IntersectionFunctionsWCallStack", false, true, -1]
+              //  , [TypeLattices.FunctionTypeLatticeKinds.FunctionIntersection, "IntersectionFunctionsWCallStack-1", false, true, 1]
                 , [TypeLattices.FunctionTypeLatticeKinds.FunctionPointwiseLub, "SingleFunctions", true, false, -1]
             ];
 
             var allVariableFlowInsensitivities = [
-                //false
-                , true
+                false
+//                , true
             ]; // TODO add inflationary
             allTypes.forEach((types:[()=>ValueTypeConfig, string])=> {
                 allFunctionTypes.forEach((functionTypes:[TypeLattices.FunctionTypeLatticeKinds, string, boolean, boolean, number])=> {
@@ -330,7 +335,7 @@ describe("Type check traces and display table", function () {
         });
     });
 
-    it("Display table & charts", function (done) {
+    it.only("Display table & charts", function (done) {
         // TODO refactor some of this to separate file
         this.timeout(5 * 60 * 1000);
         PersistentResults.load(PersistentResults.ExperimentResultKinds.TypeChecksResult, (results:AnnotatedExperimentResults<TypeChecksResult>[])=> {
@@ -373,9 +378,13 @@ describe("Type check traces and display table", function () {
 
                             row = [description].concat(numberRow);
                         }
-                        if (!row || row.length != 12) {
+                        var dummyRowLength = warningGroup.length + errorGroup.length + 1;
+                        if (!row || row.length != dummyRowLength) {
                             console.log("row.length %d for %s", row? row.length: row, sources);
-                            row = [description, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1];
+                            row = [description];
+                            while(row.length !== dummyRowLength){
+                                row.push(-1);
+                            }
                         }
                         return row;
                     });
@@ -447,9 +456,9 @@ describe("Type check traces and display table", function () {
             //    //})
             //}));
             MetaInformationExplainerImpl.displayStackedGroupedBarChartsInBrowser(makeStackedGroupedBarCharts(locations[0]), function () {
-                MetaInformationExplainerImpl.displayStackedGroupedBarChartsInBrowser(makeStackedGroupedBarCharts(locations[1]), function () {
+                //MetaInformationExplainerImpl.displayStackedGroupedBarChartsInBrowser(makeStackedGroupedBarCharts(locations[1]), function () {
                     done();
-                });
+                //});
             });
             //});
         });

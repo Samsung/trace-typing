@@ -213,6 +213,10 @@ class TypeAscriberImpl implements TypeAscriber {
         }
 
         var objectType:ObjectType = new TypeImpls.ObjectTypeImpl(propertyTypes, functionType, classification, readOnlyPropertyNames);
+        if(this.useSJSAscription){
+            SJS.setObjectAllocationContext(objectType, instance.allocationContext);
+        }
+
         var type = new TypeImpls.TupleTypeImpl([objectType]);
         return type;
     }

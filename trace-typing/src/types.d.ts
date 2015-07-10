@@ -85,6 +85,7 @@ interface InfoProperties {
     argsTmps?: Variable[]
     isConstructorCall?: boolean,
     scopeID?: ScopeID
+    isExternalCall?: boolean
 }
 
 interface Info extends TraceStatement {
@@ -97,6 +98,7 @@ interface NextInfo {
     nextNewIsArguments: boolean
     nextNewIsFunction: boolean
     nextNewIsDotPrototype: boolean
+    nextNewIsInternalConstructorThis: boolean
 }
 
 
@@ -179,6 +181,7 @@ interface Value {
 interface Instance extends Value, Concrete {
     shapes: Shape[]
     functionUsages: DynamicFunctionSignature[]
+    allocationContext?: ScopeID // SJS specific
 }
 /**
  * The shape of an object at a specific point in time in a trace

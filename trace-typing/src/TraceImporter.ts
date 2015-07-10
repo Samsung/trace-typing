@@ -97,6 +97,7 @@ export function deserializeNaiveTrace(externalTrace:any[], smap:any):Trace {
                             baseTmp: mkVar(p.baseTmp),
                             argsTmps: p.argsTmps.map(mkVar),
                             isConstructorCall: p.isConstructorCall,
+                            isExternalCall: p.isExternalCall,
                             scopeID: p.scopeID
                         };
                         break;

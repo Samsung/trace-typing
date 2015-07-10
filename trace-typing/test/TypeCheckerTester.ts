@@ -34,7 +34,7 @@ function countUniqueIIDs(messages:IIDRelatedMessage[]) {
     return count;
 }
 
-export function testTrace(err:any, trace:Trace, expectedErrorCount:number, inferencerConfig:InferencerConfig, done:Function, flowConfig:PrecisionConfig, typeSystemDescription?:string, enableSJSChecks: boolean = false) {
+export function testTrace(err:any, trace:Trace, expectedErrorCount:number, inferencerConfig:InferencerConfig, done:Function, flowConfig:PrecisionConfig, typeSystemDescription?:string, enableSJSChecks:boolean = false) {
     if (err) {
         done(err);
         throw err;
@@ -49,6 +49,14 @@ export function testTrace(err:any, trace:Trace, expectedErrorCount:number, infer
         var explainer = new MetaInformationExplainerImpl(trace.iidMap);
         // console.log("Type checking...");
         var messages:TypeChecker.IIDRelatedConstaintFailureMessage[] = TypeChecker.check(trace.statements, results.propagatedEnv, results.inferredEnv, typeLatticePair.types, undefined, enableSJSChecks);
+        var noTransitiveDependencies = true;
+        if (noTransitiveDependencies) {
+            messages = messages.filter(m => {
+                var location = explainer.getIIDSourceLocation(m.iid).file;
+                var pattern = /(\/node_modules\/.*\/node_modules\/)/;
+                return !pattern.test(location);
+            });
+        }
         var iidErrors = messages.filter(m => m.type === 'error');
         var iidWarnings = messages.filter(m => m.type === 'warning');
 
@@ -70,14 +78,18 @@ export function testTrace(err:any, trace:Trace, expectedErrorCount:number, infer
         var description = (typeSystemDescription ? typeSystemDescription : "Some type system") + " w. " + JSON.stringify(flowConfig);
         var annotated = PersistentResults.annotate([result], trace.sources, description);
         PersistentResults.save(annotated, function () {
-            if (expectedErrorCount !== -1) {
-                var show = true && expectedErrorCount !== dynamicErrorCount;
+            if (true || expectedErrorCount !== -1) {
+                var show = false && expectedErrorCount !== dynamicErrorCount;
                 if (dynamicErrorCount > 0 && show) {
                     var showErrorsAndWarnings = true;
                     var showLocation = true;
                     if (showErrorsAndWarnings) {
-                        iidErrors.forEach(e => console.log("%sError (kind:%d): %s", showLocation? explainer.getIIDSourceLocation(e.iid) + ": ": "", e.constraintKind, e.message));
-                        iidWarnings.forEach(e => console.log("%sWarning (kind:%d): %s", showLocation? explainer.getIIDSourceLocation(e.iid) + ": ": "", e.constraintKind, e.message));
+                        function location(e:IIDRelatedMessage) {
+                            return showLocation ? explainer.getIIDSourceLocation(e.iid) + ": " : ""
+                        }
+
+                        iidErrors.forEach(e => console.log("%sError (kind:%s): %s", location(e), TypeChecker.ConstraintKinds[e.constraintKind], e.message));
+                        iidWarnings.forEach(e => console.log("%sWarning (kind:%s): %s", location(e), TypeChecker.ConstraintKinds[e.constraintKind], e.message));
                     }
                     var sourceLocationErrors:SourceRelatedMessage[] = iidErrors.map(e => {
                         return {
@@ -86,6 +98,7 @@ export function testTrace(err:any, trace:Trace, expectedErrorCount:number, infer
                             type: e.type
                         };
                     });
+
                     explainer.displayMessagesInBrowser("Typechecking", sourceLocationErrors, function () {
                         if (expectedErrorCount !== -1) {
                             assert.equal(dynamicErrorCount, expectedErrorCount);

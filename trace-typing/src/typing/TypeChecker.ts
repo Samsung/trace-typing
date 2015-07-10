@@ -272,6 +272,25 @@ class IsAssignmentCompatibleConstraint implements Constraint {
         return util.format(this.message);
     }
 }
+class PrototypalAssignmentConstraint implements Constraint {
+    public kind = ConstraintKinds.PrototypalAssignment;
+
+    constructor(public element:TraceElement, private prototypeAllocationScope: ScopeID, private currentScope: ScopeID){
+    }
+
+    isSatisfied() {
+        var satisfied = this.prototypeAllocationScope === this.currentScope;
+        if(!satisfied){
+            console.warn(this.getFailureMessage());
+        }
+        console.log("Prototypal check: %s vs %s => %s", this.prototypeAllocationScope, this.currentScope, satisfied)
+        return satisfied;
+    }
+
+    getFailureMessage() {
+        return "Invalid .prototype assignment: rhs is not prototypal";
+    }
+}
 class PrototypePropertiesConstraint implements Constraint {
     public kind = ConstraintKinds.PrototypePropertyInvariance;
 
@@ -362,7 +381,7 @@ class ExpressionMonitorVisitor implements TraceExpressionVisitor<void> {
 }
 
 class StatementMonitorVisitor implements TraceStatementVisitor<void> {
-
+    private scopeIDStack: ScopeID[] = [];
     private expressionVisitor:ExpressionMonitorVisitor;
 
     private nextInfo:NextInfo = {
@@ -370,7 +389,8 @@ class StatementMonitorVisitor implements TraceStatementVisitor<void> {
         nextNewIsArray: false,
         nextNewIsDotPrototype: false,
         nextNewIsFunction: false,
-        nextNewIsArguments: false
+        nextNewIsArguments: false,
+        nextNewIsInternalConstructorThis: false
     };
 
     // a stack of allowed function return types, obtained by finding maching signatures for the actual arguments
@@ -402,6 +422,11 @@ class StatementMonitorVisitor implements TraceStatementVisitor<void> {
     }
 
     visitFieldWrite(e:FieldWrite):void {
+        var scopeIDStack = this.scopeIDStack;
+        function getCurrentScopeID(){
+            return scopeIDStack.length === 0? 'global': scopeIDStack[scopeIDStack.length - 1];
+        }
+
         var base = this.variables.read(e.base);
         var dynamic = this.nextInfo.nextFieldAccessIsDynamic;
         this.nextInfo.nextFieldAccessIsDynamic = false;
@@ -442,11 +467,18 @@ class StatementMonitorVisitor implements TraceStatementVisitor<void> {
                     propertyType = TypeImpls.constants.Bottom;
                 }
 
-                var isAssignmentCompatibleConstraint = new IsAssignmentCompatibleConstraint(e, propertyType, rhs, this.assignmentCompatibilityCheck, "Invalid assignment to ." + fieldName);
                 if (this.enableSJSChecks && isFunctionPrototypeField) {
-                    isAssignmentCompatibleConstraint = new IsAssignmentCompatibleConstraint(e, propertyType, rhs, TypeImpls.isTupleTypeEqual, "Invalid assignment to ." + fieldName + " (no subtyping allowed)");
+                    if(TypeImpls.TupleAccess.isObject(rhs)) {
+                        // console.log("Assigning .prototype: %s", TypeImpls.toPrettyString(rhs));
+                        var allocationScope:ScopeID = SJS.getObjectAllocationContext(TypeImpls.TupleAccess.getObject(rhs));
+                        var currentScope = getCurrentScopeID();
+                        // console.log("Prototype allocation scopeID: %s, current scopeID: %s.", allocationScope, currentScope);
+                        this.constraints.addErrorConstraint(new PrototypalAssignmentConstraint(e, allocationScope, currentScope));
+                    }
+                }else {
+                    var isAssignmentCompatibleConstraint = new IsAssignmentCompatibleConstraint(e, propertyType, rhs, this.assignmentCompatibilityCheck, "Invalid assignment to ." + fieldName);
+                    this.constraints.addErrorConstraint(isAssignmentCompatibleConstraint);
                 }
-                this.constraints.addErrorConstraint(isAssignmentCompatibleConstraint);
                 //if(!isAssignmentCompatibleConstraint.isSatisfied()){
                 //    throw new Error("Incompatibility for ." + fieldName);
                 //}
@@ -469,6 +501,8 @@ class StatementMonitorVisitor implements TraceStatementVisitor<void> {
     }
 
     visitInfo(e:Info):void {
+        var scopeIDStack = this.scopeIDStack;
+
         var func:TupleType;
         var base:TupleType;
         var isFunction = false;
@@ -484,6 +518,13 @@ class StatementMonitorVisitor implements TraceStatementVisitor<void> {
 
         if (e.kind === AST.InfoKinds.NextFieldAccessIsDynamic) {
             this.nextInfo.nextFieldAccessIsDynamic = true;
+        }
+
+        if(e.kind === AST.InfoKinds.FunctionEnter) {
+            scopeIDStack.push(e.properties.scopeID);
+        }
+        if (e.kind === AST.InfoKinds.FunctionReturn) {
+            scopeIDStack.pop();
         }
 
         if (e.properties.baseTmp !== undefined) {
@@ -502,8 +543,8 @@ class StatementMonitorVisitor implements TraceStatementVisitor<void> {
         if (isFunction) {
             var funcType = TypeImpls.TupleAccess.getFunction(func);
             switch (e.kind) {
-                case  AST.InfoKinds.FunctionInvocation:
                 case  AST.InfoKinds.FunctionEnter:
+                case  AST.InfoKinds.FunctionInvocation:
                 {
                     var base = this.variables.read(e.properties.baseTmp);
                     if (this.enableSJSChecks && e.kind === AST.InfoKinds.FunctionInvocation && TypeImpls.TupleAccess.isObject(base) && !e.properties.isConstructorCall /* constructing abstarct objects is OK */) {
@@ -585,7 +626,6 @@ class StatementMonitorVisitor implements TraceStatementVisitor<void> {
                     break;
                 }
                 case AST.InfoKinds.FunctionResult:
-                    // ignored
                     break;
                 default:
                     throw new Error("Unhandled kind" + e.kind);
@@ -712,7 +752,8 @@ ConstraintKinds {
     IsNotClassifiedAsObject,
     PropertyIsWritable,
     IsClassificationValidAccess,
-    PrototypePropertyInvariance
+    PrototypePropertyInvariance,
+    PrototypalAssignment
 }
 export interface IIDRelatedConstaintFailureMessage extends IIDRelatedMessage {
     constraintKind: ConstraintKinds

@@ -36,6 +36,14 @@ var topPropertyNames = new Set();
 // .constructor does not really fit into the prototype hierarchy, and it will break prototype property invariance checking later...
 topPropertyNames.add('constructor');
 
+var objectAllocationContexts = new WeakMap<ObjectType, ScopeID>();
+export function setObjectAllocationContext(objectType: ObjectType, scopeID: ScopeID){
+    objectAllocationContexts.set(objectType, scopeID);
+}
+export function getObjectAllocationContext(objectType: ObjectType){
+    return objectAllocationContexts.get(objectType);
+}
+
 export function selectObjectClassification(instance:Instance):ObjectClassification {
     var shapes = instance.shapes;
     for (var i = 0; i < shapes.length; i++) {

@@ -59,14 +59,15 @@ function TraceBuilder(exportFunction) {
                 traceLength++;
                 exportFunction(element);
             },
-            makeFunctionInvocation: function (functionTmp, baseTmp, argsTmps, isConstructorCall, iid) {
+            makeFunctionInvocation: function (functionTmp, baseTmp, argsTmps, isConstructorCall, isExternalCall, iid) {
                 this.register({
                     kind: elementKinds.INFO, meta: {iid: J$.sid + "/" + iid}, properties: {
                         kind: infoKinds.FUNCTION_INVOCATION,
                         functionTmp: functionTmp,
                         baseTmp: baseTmp,
                         argsTmps: argsTmps,
-                        isConstructorCall: isConstructorCall
+                        isConstructorCall: isConstructorCall,
+                        isExternalCall: isExternalCall
                     }
                 });
             },

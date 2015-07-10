@@ -309,7 +309,7 @@ describe("SJSTypeChecker unit tests", function () {
                 testSource("function K(){} K.prototype = {p: 42}; K.prototype = {};" + cstr("K"), 1, done, {})
             });
             it("Should not allow redefining the empty prototype twice with unrelated type", function (done) {
-                testSource("function K(){}K.prototype = {p: 42}; " + cstr("K") /* call now to avoid extra type error */ + "K.prototype = {q: 'foo'};", 3 /* prototype is the Top object, both asignments fail */, done, {})
+                testSource("function K(){}K.prototype = {p: 42}; " + cstr("K") /* call now to avoid extra type error */ + "K.prototype = {q: 'foo'};", 1, done, {})
             })
 
             it("Should not allow redefining the non-empty prototype", function (done) {
@@ -352,38 +352,45 @@ describe("SJSTypeChecker unit tests", function () {
             });
         });
 
-        describe.skip("Method update", function () {
-            // NB: this expects a significant departure from how SJS really identifies MRO/MRW!
-
-            it("Should allow method update", function (done) {
-                testSource("", -2, done, {})
+        describe("Prototypal objects", function(){
+            it("Should accept .prototype assignment with object literal 1", function(done){
+                testSource("function K(){}; K.prototype = {}; new K();", 0, done, {})
             });
-            it("Should allow method shadowing", function (done) {
-                testSource("", -2, done, {})
+            it("Should accept .prototype assignment with object literal 2", function(done){
+                testSource("function K(){}; K.prototype = {a : 42}; new K();", 0, done, {})
             });
-            it("Should allow method update on non-prototype, RIGHT???", function (done) {
-                testSource("", -2, done, {})
+            it("Should accept .prototype assignment with constructor call", function(done){
+                testSource("function S(){}; function K(){}; K.prototype = new S(); new K();", 0, done, {})
             });
-
-            it("Should not allow method update due to too small MRO", function (done) {
-                testSource("", -2, done, {})
+            it("Should accept .prototype assignment with equality-merged prototype 1", function(done){
+                testSource("function K(){}; var p = {}; p = {}; K.prototype = p; new K();", 0, done, {flowInsensitiveVariables: true})
             });
-            it("Should not allow method update due to too small MRW", function (done) {
-                testSource("", -2, done, {})
+            it("Should accept .prototype assignment with equality-merged prototype 2", function(done){
+                testSource("function K(){}; var p = {a: 42}; p = {a : 87}; K.prototype = p; new K();", 0, done, {flowInsensitiveVariables: true})
             });
-
-            it("Should not allow method shadowing due to too small MRO", function (done) {
-                testSource("", -2, done, {})
+            it("Should not accept  .prototype assignment with non-equality-merged prototype 1", function(done){
+                testSource("function K(){}; var p = {a: 42}; p = {}; K.prototype = p; new K();", 1, done, {flowInsensitiveVariables: true})
             });
-            it("Should not allow method shadowing due too small MRW", function (done) {
-                testSource("", -2, done, {})
+            it("Should not accept .prototype assignment with non-equality-merged prototype 2", function(done){
+                testSource("function K(){}; var p = {}; p = {a: 42}; K.prototype = p; new K();", 1, done, {flowInsensitiveVariables: true})
             });
-
-            it("Should not allow method update due to wrong signature", function (done) {
-                testSource("", -2, done, {})
+            it("Should not accept .prototype assignment with non-equality-merged prototype 3", function(done){
+                testSource("function K(){}; var p = {a: 42}; p = {b: 42}; K.prototype = p; new K();", 1, done, {flowInsensitiveVariables: true})
             });
-            it("Should not allow method shadowing due to wrong signature", function (done) {
-                testSource("", -2, done, {})
+            it("Should not accept .prototype assignment with non-equality-merged prototype 4", function(done){
+                testSource("function K(){}; var p = {a: 42}; p = {a: 87, b: true}; K.prototype = p; new K();", 1, done, {flowInsensitiveVariables: true})
+            });
+            it("Should not accept .prototype assignment with non-equality-merged prototype 5", function(done){
+                testSource("function K(){}; var p = {a: 42, b: true}; p = {a: 87, c: 'foo'}; K.prototype = p; new K();", 1, done, {flowInsensitiveVariables: true})
+            });
+            it("Should not accept .prototype assignment with externally allocated prototype 1", function(done){
+                testSource("function K(){}; var p = (function(){return {};})(); K.prototype = p; new K();", 1, done, {})
+            });
+            it("Should not accept .prototype assignment with externally allocated prototype 2", function(done){
+                testSource("function K(){}; var p = (function(){return {a : 42};})(); K.prototype = p; new K();", 1, done, {})
+            });
+            it("Should not accept .prototype assignment with heap prototype", function(done){
+                testSource("function K(){}; var h = {p: {}}; K.prototype = h.p; new K();", 1, done, {})
             });
         });
 

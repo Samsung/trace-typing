@@ -51,6 +51,9 @@ function TraceBuildingAnalysis(tmpManager, astQueries, contextUtil, coercionUtil
     }
 
     this.invokeFunPre = function (iid, f, base, args, isConstructor, isMethod) {
+        function isExternal(f) {
+            return typeof f === 'function' && contextUtil.isExternalFunction(f);
+        }
         // console.log("invokeFunPre(%s, %s, %s, %s, %s, %s)", iid, "%" + typeof f + "%", base, args, isConstructor, isMethod);
         var argsTmps = tmpManager.popValueTmps(args.length, args);
         var functionTmp = tmpManager.popValueTmp(f);
@@ -78,7 +81,7 @@ function TraceBuildingAnalysis(tmpManager, astQueries, contextUtil, coercionUtil
         }
 
         var tmps = {functionTmp: functionTmp, baseTmp: baseTmp, argsTmps: argsTmps};
-        traceBuilder.infoBuilder.makeFunctionInvocation(tmps.functionTmp, tmps.baseTmp, tmps.argsTmps, isConstructor, iid);
+        traceBuilder.infoBuilder.makeFunctionInvocation(tmps.functionTmp, tmps.baseTmp, tmps.argsTmps, isConstructor, isExternal(f), iid);
 
         if (f === Function.prototype.call || f === Function.prototype.apply) {
             // special calls, requires some argument shuffling...
@@ -123,11 +126,11 @@ function TraceBuildingAnalysis(tmpManager, astQueries, contextUtil, coercionUtil
             args = newArgs;
             base = newBase;
             f = newFun;
-            traceBuilder.infoBuilder.makeFunctionInvocation(tmps.functionTmp, tmps.baseTmp, tmps.argsTmps, false, iid);
+            traceBuilder.infoBuilder.makeFunctionInvocation(tmps.functionTmp, tmps.baseTmp, tmps.argsTmps, false, isExternal(f), iid);
         }
 
         tmpManager.pushFunctionCallTemporaries(f, isPrimitive(base) ? "*object*" : base, args, tmps);
-        if (typeof f === 'function' && contextUtil.isExternalFunction(f)) {
+        if (isExternal(f)) {
             tmpManager.markFunctionEntry();
             nativeSynthesisManager.toNative(f, tmps.functionTmp, iid);
             nativeSynthesisManager.toNative(base, tmps.baseTmp, iid);

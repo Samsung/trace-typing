@@ -161,7 +161,7 @@ export class InstanceImpl implements Instance {
     public shapes:Shape[];
     public functionUsages:DynamicFunctionSignature[] = [];
 
-    constructor(initialShape:Shape) {
+    constructor(initialShape:Shape, public allocationContext: ScopeID) {
         this.shapes = [initialShape];
     }
 }

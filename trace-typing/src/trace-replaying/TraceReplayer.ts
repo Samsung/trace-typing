@@ -55,9 +55,9 @@ class InfoVisitor {
      */
     private callstack:InfoFunctionInvocationPropertiesMetaPair[] = [];
 
-    public nextInfo:NextInfo = {nextFieldAccessIsDynamic: false, nextNewIsArray: false, nextNewIsArguments: false, nextNewIsDotPrototype: false, nextNewIsFunction: false};
+    public nextInfo:NextInfo = {nextFieldAccessIsDynamic: false, nextNewIsArray: false, nextNewIsArguments: false, nextNewIsDotPrototype: false, nextNewIsFunction: false, nextNewIsInternalConstructorThis: false};
 
-    constructor(private variables:Variables<Value>, private currentTraceIndex:{value: number}) {
+    constructor(private variables:Variables<Value>, private currentTraceIndex:{value: number}, private scopeIDStack:ScopeID[]) {
     }
 
     public visit(info:Info) {
@@ -71,8 +71,12 @@ class InfoVisitor {
                     isConstructorCall: info.properties.isConstructorCall
                 };
                 this.callstack.push({properties: properties, meta: info.meta});
+                if(properties.isConstructorCall && !info.properties.isExternalCall) {
+                    this.nextInfo.nextNewIsInternalConstructorThis = true;
+                }
                 break;
             case AST.InfoKinds.FunctionReturn:
+                this.scopeIDStack.pop();
                 var invocation = this.callstack.pop();
                 var signature:DynamicFunctionSignature = {
                     function: invocation.properties.function,
@@ -101,9 +105,11 @@ class InfoVisitor {
             case AST.InfoKinds.NextNewIsFunction:
                 this.nextInfo.nextNewIsFunction = true;
                 break;
-            case AST.InfoKinds.Coerce:
             case AST.InfoKinds.FunctionEnter:
+                this.scopeIDStack.push(info.properties.scopeID);
+                break;
             case AST.InfoKinds.FunctionResult:
+            case AST.InfoKinds.Coerce:
             case AST.InfoKinds.ForInObject:
                 // ignore
                 break;
@@ -256,17 +262,28 @@ function replayStatements(statements:TraceStatement[], origVariables:Variables<V
         instances.push(instance);
     }
 
-    function makeObjectWithoutPrototype(isDotPrototype: boolean, meta:TraceElementMetaInformation):Instance {
+    function getCurrentScopeID(){
+        return scopeIDStack.length === 0? 'global': scopeIDStack[scopeIDStack.length - 1];
+    }
+    function getEnclosingScopeID(){
+        // pop temporarily
+        var currentScopeID = scopeIDStack.pop();
+        var enclosingScopeID = getCurrentScopeID();
+        scopeIDStack.push(currentScopeID);
+        return enclosingScopeID;
+    }
+
+    function makeObjectWithoutPrototype(isDotPrototype: boolean, allocationScopeID: ScopeID, meta:TraceElementMetaInformation):Instance {
         var shape = new Impls.ShapeImpl(getCanonicalPrimitive(AST.PrimitiveKind.Null), meta, currentTraceIndex.value, isDotPrototype);
-        var instance = new Impls.InstanceImpl(shape);
+        var instance = new Impls.InstanceImpl(shape, allocationScopeID);
         setupNewObject(instance);
         return instance;
     }
 
-    function makeNewObject(prototypeObject:Instance, isArray:boolean, isFunction: boolean, isDotPrototype: boolean, isArguments: boolean, meta:TraceElementMetaInformation):Instance {
+    function makeNewObject(prototypeObject:Instance, isArray:boolean, isFunction: boolean, isDotPrototype: boolean, isArguments: boolean, allocationScopeID: ScopeID, meta:TraceElementMetaInformation):Instance {
         var shape = new Impls.ShapeImpl(prototypeObject, meta, currentTraceIndex.value, isArray, isFunction, isDotPrototype, isArguments);
 
-        var instance = new Impls.InstanceImpl(shape);
+        var instance = new Impls.InstanceImpl(shape, allocationScopeID);
         setupNewObject(instance);
         return instance;
     }
@@ -275,7 +292,8 @@ function replayStatements(statements:TraceStatement[], origVariables:Variables<V
         return explainer.getIIDSourceLocation(e.meta.iid).toString();
     }
 
-    var infoVisitor = new InfoVisitor(variables, currentTraceIndex);
+    var scopeIDStack: ScopeID[] = [];
+    var infoVisitor = new InfoVisitor(variables, currentTraceIndex, scopeIDStack);
 
     /**
      * Visitor for trace expressions.
@@ -307,12 +325,15 @@ function replayStatements(statements:TraceStatement[], origVariables:Variables<V
             infoVisitor.nextInfo.nextNewIsArguments = false;
             var isFunction = infoVisitor.nextInfo.nextNewIsFunction;
             infoVisitor.nextInfo.nextNewIsFunction = false;
-            var isDotPrototype = infoVisitor.nextInfo.nextNewIsDotPrototype
+            var isDotPrototype = infoVisitor.nextInfo.nextNewIsDotPrototype;
             infoVisitor.nextInfo.nextNewIsDotPrototype = false;
+            var isConstructorThis = infoVisitor.nextInfo.nextNewIsInternalConstructorThis;
+            infoVisitor.nextInfo.nextNewIsInternalConstructorThis = false;
+            var allocationScopeID = isConstructorThis? getEnclosingScopeID(): getCurrentScopeID();
             if (prototypeValue.valueKind === AST.ValueKinds.Object) {
-                object = makeNewObject(<Instance>prototypeValue, isArray, isFunction, isDotPrototype, isArguments, e.meta);
+                object = makeNewObject(<Instance>prototypeValue, isArray, isFunction, isDotPrototype, isArguments, allocationScopeID, e.meta);
             } else {
-                object = makeObjectWithoutPrototype(isDotPrototype, e.meta);
+                object = makeObjectWithoutPrototype(isDotPrototype, allocationScopeID, e.meta);
             }
             return object;
         },
