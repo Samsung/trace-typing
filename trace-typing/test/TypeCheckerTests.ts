@@ -154,7 +154,7 @@ describe("TypeChecker unit tests", function () {
         describe("function assignments", function () {
             // TODO make tests
         });
-        describe.only("Paper", function () {
+        describe("Paper", function () {
             var config = inferenceConfigs.simpleSubtyping;
             var flowConfig = {flowInsensitiveVariables: false, contextInsensitiveVariables: true};
             it('Should handle PaperExample1', function (done) {
@@ -194,39 +194,44 @@ for (var k in TypeChecker.ConstraintKinds) {
     }
 }
 
-describe("Type check traces and display table", function () {
-    var oldBigApps = [/*'gulp', */ 'lodash', 'minimist', 'optparse', /*'express', 'grunt', */ 'lazy.js', 'underscore', /*'coffee-script'*/, 'escodegen'];
-    //oldBigApps = [];
-    var newBigApps = ['esprima', 'qs', 'typescript', /*'validator',*/'xml2js', 'handlebars'];
-    //newBigApps = ['typescript'];
+var oldBigApps = [/*'gulp', */ 'lodash', 'minimist', 'optparse', /*'express', 'grunt', */ 'lazy.js', 'underscore', /*'coffee-script'*/, 'escodegen'];
+//oldBigApps = [];
+var newBigApps = ['esprima', 'qs', 'typescript', /*'validator',*/'xml2js', 'handlebars'];
+//newBigApps = ['typescript'];
 
-    var bigApps = oldBigApps.concat(newBigApps);
-    // `bigApps = ['typescript'];
-    describe("Type check everything ", function () {
+var bigApps = oldBigApps.concat(newBigApps);
+bigApps = ['xml2js'];
+var noBigApps = false;
+var onlyBigApps = true;
+function ignoreFile(file:string) {
+    var is_JSON_NaN_bug = file.indexOf("JSON_nan_bug") !== -1;
+    var isBigApp = bigApps.some(app => file.indexOf(app) !== -1);
+    return is_JSON_NaN_bug || (onlyBigApps && !isBigApp) || (noBigApps && isBigApp);
+}
+describe("Type check traces and display table", function () {
+    describe.only("Type check everything ", function () {
         this.timeout(5 * 60 * 1000);
         var traceImporter:TraceImporter.TraceImporter = new TraceImporter.TraceImporter();
         traceImporter.getAllTraceFiles().forEach(function (file) {
-            var noBigApps = false;
-            var onlyBigApps = true;
 
-            if (file.indexOf("JSON_nan_bug") !== -1 || file.indexOf("calls") !== -1 /* ambiguous recursiveness */ || (onlyBigApps && file.indexOf("-bug") !== -1) || (onlyBigApps && !bigApps.some(app => file.indexOf(app) !== -1)) || (noBigApps && bigApps.some(app => file.indexOf(app) !== -1))) {
+            if (ignoreFile(file)) {
                 return; // ignore
             }
             var allTypes = [
                 [inferenceConfigs.simpleSubtypingWithUnion, 'simpleSubtypingWithUnion']
-                , [inferenceConfigs.simpleSubtyping, 'simpleSubtyping']
+//                , [inferenceConfigs.simpleSubtyping, 'simpleSubtyping']
                 , [inferenceConfigs.fullIntersection, 'intersection']
 //                , [inferenceConfigs.SJS, 'SJS']
             ];
             var allFunctionTypes = [
-                [TypeLattices.FunctionTypeLatticeKinds.FunctionIntersection, "IntersectionFunctions", false, false, -1]
-                , [TypeLattices.FunctionTypeLatticeKinds.FunctionIntersection, "IntersectionFunctionsWCallStack", false, true, -1]
-                , [TypeLattices.FunctionTypeLatticeKinds.FunctionIntersection, "IntersectionFunctionsWCallStack-1", false, true, 1]
+//                [TypeLattices.FunctionTypeLatticeKinds.FunctionIntersection, "IntersectionFunctions", false, false, -1]
+                //, [TypeLattices.FunctionTypeLatticeKinds.FunctionIntersection, "IntersectionFunctionsWCallStack", false, true, -1]
+                //, [TypeLattices.FunctionTypeLatticeKinds.FunctionIntersection, "IntersectionFunctionsWCallStack-1", false, true, 1]
                 , [TypeLattices.FunctionTypeLatticeKinds.FunctionPointwiseLub, "SingleFunctions", true, false, -1]
             ];
 
             var allVariableFlowInsensitivities = [
-                false
+                //false
                 , true
             ]; // TODO add inflationary
             allTypes.forEach((types:[()=>ValueTypeConfig, string])=> {
@@ -329,7 +334,7 @@ describe("Type check traces and display table", function () {
         // TODO refactor some of this to separate file
         this.timeout(5 * 60 * 1000);
         PersistentResults.load(PersistentResults.ExperimentResultKinds.TypeChecksResult, (results:AnnotatedExperimentResults<TypeChecksResult>[])=> {
-            results = results.filter(r => r.sources.some(f => f !== null && bigApps.some(a => f.indexOf(a) !== -1)));
+            results = results.filter(r => r.sources.some(f => f !== null && !ignoreFile(f)));
             function makeTable(location:string, constraintKind:TypeChecker.ConstraintKinds) {
                 var rows:string[][] = [];
                 groupedBySources_keys.forEach(sources => {
@@ -367,8 +372,10 @@ describe("Type check traces and display table", function () {
                             );
 
                             row = [description].concat(numberRow);
-                        } else {
-                            row = [description, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1];
+                        }
+                        if (!row || row.length != 12) {
+                            console.log("row.length %d for %s", row? row.length: row, sources);
+                            row = [description, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1];
                         }
                         return row;
                     });
