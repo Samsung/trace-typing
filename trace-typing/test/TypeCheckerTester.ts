@@ -49,7 +49,7 @@ export function testTrace(err:any, trace:Trace, expectedErrorCount:number, infer
         var explainer = new MetaInformationExplainerImpl(trace.iidMap);
         // console.log("Type checking...");
         var messages:TypeChecker.IIDRelatedConstaintFailureMessage[] = TypeChecker.check(trace.statements, results.propagatedEnv, results.inferredEnv, typeLatticePair.types, undefined, enableSJSChecks);
-        var noTransitiveDependencies = true;
+        var noTransitiveDependencies = false;
         if (noTransitiveDependencies) {
             messages = messages.filter(m => {
                 var location = explainer.getIIDSourceLocation(m.iid).file;
