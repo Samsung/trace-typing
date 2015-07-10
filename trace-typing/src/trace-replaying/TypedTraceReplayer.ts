@@ -55,7 +55,7 @@ class ExpressionDataflowVisitor implements TraceExpressionVisitor<TupleType> {
         }
 
         var property:TupleType;
-        var useTopAsFallback = true;
+        var useTopAsFallback = false;
         var nonsensicalReadFallback = useTopAsFallback? TypeImpls.constants.Top: undefined;
         switch (base.objectKind) {
             case TypeImpls.ObjectKinds.Some:
