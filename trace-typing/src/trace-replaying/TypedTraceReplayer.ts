@@ -55,6 +55,8 @@ class ExpressionDataflowVisitor implements TraceExpressionVisitor<TupleType> {
         }
 
         var property:TupleType;
+        var useTopAsFallback = true;
+        var nonsensicalReadFallback = useTopAsFallback? TypeImpls.constants.Top: undefined;
         switch (base.objectKind) {
             case TypeImpls.ObjectKinds.Some:
                 var baseObject = <ObjectType> base;
@@ -66,11 +68,11 @@ class ExpressionDataflowVisitor implements TraceExpressionVisitor<TupleType> {
                     }
                     return property;
                 } else {
-                    return undefined;
+                    return nonsensicalReadFallback;
                 }
             case TypeImpls.ObjectKinds.Top:
             case TypeImpls.ObjectKinds.Bottom:
-                return undefined;
+                return nonsensicalReadFallback;
             default:
                 throw new Error("Unhandled case: " + base.objectKind);
         }
