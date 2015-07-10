@@ -185,10 +185,11 @@ interface ErrorAndWarningCounts {
 var warningGroup = [TypeChecker.ConstraintKinds.IsNotTop];
 // the rest of the violated constraint kinds are errors
 var errorGroup:TypeChecker.ConstraintKinds[] = [];
-var SJSSpecificsOnly = true;
-if(SJSSpecificsOnly){
-    errorGroup = [TypeChecker.ConstraintKinds.IsClassificationValidAccess, TypeChecker.ConstraintKinds.IsNotClassifiedAsObject, TypeChecker.ConstraintKinds.PropertyIsWritable, TypeChecker.ConstraintKinds.PrototypalAssignment, TypeChecker.ConstraintKinds.PrototypePropertyInvariance]
-}else {
+var SJSErrorGroup = [TypeChecker.ConstraintKinds.IsClassificationValidAccess, TypeChecker.ConstraintKinds.IsNotClassifiedAsObject, TypeChecker.ConstraintKinds.PropertyIsWritable, TypeChecker.ConstraintKinds.PrototypalAssignment, TypeChecker.ConstraintKinds.PrototypePropertyInvariance, TypeChecker.ConstraintKinds.IsAbstractObject];
+var SJSSpecificsOnly = false;
+if (SJSSpecificsOnly) {
+    errorGroup = SJSErrorGroup;
+} else {
     for (var k in TypeChecker.ConstraintKinds) {
         k = parseInt(k);
         if (!isNaN(k)) {
@@ -205,7 +206,7 @@ var newBigApps = ['esprima', 'qs', 'typescript', /*'validator',*/'xml2js', 'hand
 //newBigApps = ['typescript'];
 
 var bigApps = oldBigApps.concat(newBigApps);
-// bigApps = ['xml2js'];
+//bigApps = ['xml2js', 'optparse'];
 var noBigApps = false;
 var onlyBigApps = true;
 function ignoreFile(file:string) {
@@ -213,8 +214,15 @@ function ignoreFile(file:string) {
     var isBigApp = bigApps.some(app => file.indexOf(app) !== -1);
     return is_JSON_NaN_bug || (onlyBigApps && !isBigApp) || (noBigApps && isBigApp);
 }
-describe("Type check traces and display table", function () {
+describe.only("Type check traces and display table", function () {
+    //var mode = 'RUN';
+    //var mode = 'DISPLAY';
+    //var mode = 'PIVOT';
+    var mode = 'KIND';
     describe("Type check everything ", function () {
+        if (mode !== 'RUN') {
+            return;
+        }
         this.timeout(5 * 60 * 1000);
         var traceImporter:TraceImporter.TraceImporter = new TraceImporter.TraceImporter();
         traceImporter.getAllTraceFiles().forEach(function (file) {
@@ -230,14 +238,14 @@ describe("Type check traces and display table", function () {
             ];
             var allFunctionTypes = [
                 [TypeLattices.FunctionTypeLatticeKinds.FunctionIntersection, "IntersectionFunctions", false, false, -1]
-              //  , [TypeLattices.FunctionTypeLatticeKinds.FunctionIntersection, "IntersectionFunctionsWCallStack", false, true, -1]
-              //  , [TypeLattices.FunctionTypeLatticeKinds.FunctionIntersection, "IntersectionFunctionsWCallStack-1", false, true, 1]
-                , [TypeLattices.FunctionTypeLatticeKinds.FunctionPointwiseLub, "SingleFunctions", true, false, -1]
+//                , [TypeLattices.FunctionTypeLatticeKinds.FunctionIntersection, "IntersectionFunctionsWCallStack", false, true, -1]
+//                , [TypeLattices.FunctionTypeLatticeKinds.FunctionIntersection, "IntersectionFunctionsWCallStack-1", false, true, 1]
+//                , [TypeLattices.FunctionTypeLatticeKinds.FunctionPointwiseLub, "SingleFunctions", true, false, -1]
             ];
 
             var allVariableFlowInsensitivities = [
-                false
-//                , true
+//                false
+                , true
             ]; // TODO add inflationary
             allTypes.forEach((types:[()=>ValueTypeConfig, string])=> {
                 allFunctionTypes.forEach((functionTypes:[TypeLattices.FunctionTypeLatticeKinds, string, boolean, boolean, number])=> {
@@ -264,7 +272,80 @@ describe("Type check traces and display table", function () {
         });
     });
 
+    it("Make kind tables", function (done) {
+        // FIXME full of terrible hacks! Should really refactor!!
+        if (mode !== 'KIND') {
+            done();
+            return;
+        }
+        PersistentResults.load(PersistentResults.ExperimentResultKinds.TypeChecksResult, (results:AnnotatedExperimentResults<TypeChecksResult>[])=> {
+            results = results.filter(r => r.sources.some(f => f !== null && bigApps.some(a => f.indexOf(a) !== -1)));
+            var bySourceCSVLines = new Map<string, string[]>();
+            results.forEach((r:AnnotatedExperimentResults<TypeChecksResult>) => {
+                // parse the fully qualified source paths for each file
+                var source = r.sources.filter(s => s !== null && !!s.match(/\/node_modules\//)).map(s => {
+                    var match = s.match(/\/([^/]+)\/node_modules\//);
+                    return match[1 /* pick first */];
+                })[0 /* index should not matter */];
+
+                if (!bySourceCSVLines.has(source)) {
+                    bySourceCSVLines.set(source, []);
+                }
+
+                // parse the description format made in TypeCheckerTester.ts (silly)
+                var descriptionComponents = r.description.split(' w. ');
+
+                var fullTypeConfig = descriptionComponents[0];
+                var shortTypeConfig:string;
+                switch (fullTypeConfig) {
+                    case 'intersection':
+                        shortTypeConfig = 'simple'; // XXX seems like a weird naming mapping?!
+                        break;
+                    case 'simpleSubtyping':
+                        shortTypeConfig = 'subtyping';
+                        break;
+                    case 'simpleSubtypingWithUnion':
+                        shortTypeConfig = 'unions';
+                        break;
+                    case 'SJS':
+                        shortTypeConfig = 'SJS';
+                        break;
+                    default:
+                        throw new Error("Unhandled case: " + fullTypeConfig);
+                }
+
+                if (shortTypeConfig !== 'SJS' || !JSON.parse(descriptionComponents[1]).flowInsensitiveVariables) {
+                    return;
+                }
+
+                r.results.forEach((result:TypeChecksResult) => {
+                    for (var kind in result.data) {
+                        if (SJSErrorGroup.indexOf(+kind) !== -1) {
+                            var line = util.format('"%s", "%d";', TypeChecker.ConstraintKinds[kind], result.data[kind].Static);
+                            bySourceCSVLines.get(source).push(line);
+                        }
+                    }
+                });
+                // sort lines for prettyness
+                var outDir = ConfigLoader.load().experimentResultDirectory;
+                console.log('%s:',source);
+                bySourceCSVLines.forEach((lines:string[], source:string) => {
+                    lines.sort();
+                    lines.forEach(l => console.log("  %s", l));
+                    var filename = path.resolve(outDir, source + "-static-error-checks.csv");
+                    fs.writeFileSync(filename, lines.join('\n'));
+                });
+
+            });
+            done();
+        });
+    });
+
     it("Make pivot tables", function (done) {
+        if (mode !== 'PIVOT') {
+            done();
+            return;
+        }
         function countErrorsAndWarnings(results:TypeChecksResult[]):ErrorAndWarningCounts {
             var counts = {errors: 0, warnings: 0};
             console.log("countErrorsAndWarnings");
@@ -293,6 +374,7 @@ describe("Type check traces and display table", function () {
 
                 // parse the description format made in TypeCheckerTester.ts (silly)
                 var descriptionComponents = r.description.split(' w. ');
+
                 var fullTypeConfig = descriptionComponents[0];
                 var shortTypeConfig:string;
                 switch (fullTypeConfig) {
@@ -335,8 +417,13 @@ describe("Type check traces and display table", function () {
         });
     });
 
-    it.only("Display table & charts", function (done) {
+    it("Display table & charts", function (done) {
+        if (mode !== 'DISPLAY') {
+            done();
+            return;
+        }
         // TODO refactor some of this to separate file
+        // FIXME tables need 'enough' data to be structured correct, e.g. a single configuration  will be buggy..
         this.timeout(5 * 60 * 1000);
         PersistentResults.load(PersistentResults.ExperimentResultKinds.TypeChecksResult, (results:AnnotatedExperimentResults<TypeChecksResult>[])=> {
             results = results.filter(r => r.sources.some(f => f !== null && !ignoreFile(f)));
@@ -380,9 +467,9 @@ describe("Type check traces and display table", function () {
                         }
                         var dummyRowLength = warningGroup.length + errorGroup.length + 1;
                         if (!row || row.length != dummyRowLength) {
-                            console.log("row.length %d for %s", row? row.length: row, sources);
+                            console.log("row.length %d for %s", row ? row.length : row, sources);
                             row = [description];
-                            while(row.length !== dummyRowLength){
+                            while (row.length !== dummyRowLength) {
                                 row.push(-1);
                             }
                         }
@@ -457,7 +544,7 @@ describe("Type check traces and display table", function () {
             //}));
             MetaInformationExplainerImpl.displayStackedGroupedBarChartsInBrowser(makeStackedGroupedBarCharts(locations[0]), function () {
                 //MetaInformationExplainerImpl.displayStackedGroupedBarChartsInBrowser(makeStackedGroupedBarCharts(locations[1]), function () {
-                    done();
+                done();
                 //});
             });
             //});
