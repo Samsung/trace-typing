@@ -207,6 +207,7 @@ var newBigApps = ['esprima', 'qs', 'typescript', /*'validator',*/'xml2js', 'hand
 
 var bigApps = oldBigApps.concat(newBigApps);
 //bigApps = ['xml2js', 'optparse'];
+bigApps.sort();
 var noBigApps = false;
 var onlyBigApps = true;
 function ignoreFile(file:string) {
@@ -215,10 +216,10 @@ function ignoreFile(file:string) {
     return is_JSON_NaN_bug || (onlyBigApps && !isBigApp) || (noBigApps && isBigApp);
 }
 describe.only("Type check traces and display table", function () {
-    //var mode = 'RUN';
+    var mode = 'RUN';
     //var mode = 'DISPLAY';
     //var mode = 'PIVOT';
-    var mode = 'KIND';
+    //var mode = 'KIND';
     describe("Type check everything ", function () {
         if (mode !== 'RUN') {
             return;
@@ -231,16 +232,16 @@ describe.only("Type check traces and display table", function () {
                 return; // ignore
             }
             var allTypes = [
-//                [inferenceConfigs.simpleSubtypingWithUnion, 'simpleSubtypingWithUnion']
-//                , [inferenceConfigs.simpleSubtyping, 'simpleSubtyping']
-//                , [inferenceConfigs.fullIntersection, 'intersection']
-                , [inferenceConfigs.SJS, 'SJS']
+                [inferenceConfigs.fullIntersection, 'intersection']
+                , [inferenceConfigs.simpleSubtyping, 'simpleSubtyping']
+                , [inferenceConfigs.simpleSubtypingWithUnion, 'simpleSubtypingWithUnion']
+//                , [inferenceConfigs.SJS, 'SJS']
             ];
             var allFunctionTypes = [
-                [TypeLattices.FunctionTypeLatticeKinds.FunctionIntersection, "IntersectionFunctions", false, false, -1]
+//                [TypeLattices.FunctionTypeLatticeKinds.FunctionIntersection, "IntersectionFunctions", false, false, -1]
 //                , [TypeLattices.FunctionTypeLatticeKinds.FunctionIntersection, "IntersectionFunctionsWCallStack", false, true, -1]
 //                , [TypeLattices.FunctionTypeLatticeKinds.FunctionIntersection, "IntersectionFunctionsWCallStack-1", false, true, 1]
-//                , [TypeLattices.FunctionTypeLatticeKinds.FunctionPointwiseLub, "SingleFunctions", true, false, -1]
+                , [TypeLattices.FunctionTypeLatticeKinds.FunctionPointwiseLub, "SingleFunctions", true, false, -1]
             ];
 
             var allVariableFlowInsensitivities = [

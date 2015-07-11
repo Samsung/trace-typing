@@ -45,8 +45,8 @@ export function testTrace(err:any, trace:Trace, expectedErrorCount:number, infer
         var traceReplayResults = TraceReplayer.replayTrace(trace);
         var typeLatticePair = inferencerConfig();
 
-        var results = TypedTraceReplayer.replayTrace(traceReplayResults.variableValues, traceReplayResults.variableList, trace.statements, flowConfig, typeLatticePair);
         var explainer = new MetaInformationExplainerImpl(trace.iidMap);
+        var results = TypedTraceReplayer.replayTrace(traceReplayResults.variableValues, traceReplayResults.variableList, trace.statements, flowConfig, typeLatticePair, explainer);
         // console.log("Type checking...");
         var messages:TypeChecker.IIDRelatedConstaintFailureMessage[] = TypeChecker.check(trace.statements, results.propagatedEnv, results.inferredEnv, typeLatticePair.types, undefined, enableSJSChecks);
         var noTransitiveDependencies = false;

@@ -207,7 +207,7 @@ export class Playground {
 
                             var typeLatticePair:ValueTypeConfig = experimentConfig.typeLatticeMaker();
 
-                            TypedTraceReplayer.replayTrace(traceReplayResults.variableValues, traceReplayResults.variableList, trace.statements, experimentConfig.precisionConfig, typeLatticePair);
+                            TypedTraceReplayer.replayTrace(traceReplayResults.variableValues, traceReplayResults.variableList, trace.statements, experimentConfig.precisionConfig, typeLatticePair, new MetaInformationExplainerImpl(trace.iidMap));
                             return {
                                 types: <any>[],
                                 failures: <any>[]
@@ -219,7 +219,7 @@ export class Playground {
                             var traceReplayResults = TraceReplayer.replayTrace(trace);
 
                             var typeLatticePair:ValueTypeConfig = experimentConfig.typeLatticeMaker();
-                            var results = TypedTraceReplayer.replayTrace(traceReplayResults.variableValues, traceReplayResults.variableList, trace.statements, experimentConfig.precisionConfig, typeLatticePair);
+                            var results = TypedTraceReplayer.replayTrace(traceReplayResults.variableValues, traceReplayResults.variableList, trace.statements, experimentConfig.precisionConfig, typeLatticePair, new MetaInformationExplainerImpl(trace.iidMap));
 
                             var constraints:TypeChecker.ConstraintKinds[] = inspectionArgs.map(arg => {
                                 var typeCheck:TypeChecker.ConstraintKinds = (<any>TypeChecker).ConstraintKinds[arg];

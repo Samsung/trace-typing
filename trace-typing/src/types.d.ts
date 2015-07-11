@@ -151,6 +151,17 @@ interface Variables<T> {
     read(variable:Variable, allowUndefined?:boolean):T
     write(variable:Variable, value:T):void
 }
+interface RecoveryData {
+    roots: Set<Variable>
+    uses: Set<Variable>
+}
+interface RecoveryMarkedVariables<T> extends Variables<T> {
+    markRootRecovered(variable:Variable):void
+    markTransitivelyRecovered(variable:Variable):void
+    isRecovered(variable:Variable):boolean
+    getRecoveryData():RecoveryData
+}
+
 
 //
 // Type Checking

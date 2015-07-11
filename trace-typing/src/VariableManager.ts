@@ -71,8 +71,12 @@ export function mkVar(text:string) {
     mkVarCache.set(text, canonicalized);
     return canonicalized;
 }
+export function variableToString(variable:Variable):string {
+    return '' + (variable.name ? variable.name : variable.iid) + ',' + variable.functionIID + ',' + variable.callCount;
+};
+
 export function canonicalize(variable:Variable) {
-    var key = '' + (variable.name ? variable.name : variable.iid) + ',' + variable.functionIID + ',' + variable.callCount;
+    var key = variableToString(variable);
     if (!canonicalVars.has(key)) {
         canonicalVars.set(key, variable);
     }

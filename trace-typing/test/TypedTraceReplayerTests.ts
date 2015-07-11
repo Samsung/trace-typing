@@ -92,8 +92,8 @@ function test(source:string, callback:(type:TupleType)=>void, inferencerConfig:I
         try {
             var traceReplayResults = TraceReplayer.replayTrace(trace);
             var typeLatticePair = inferencerConfig();
-
-            var results = TypedTraceReplayer.replayTrace(traceReplayResults.variableValues, traceReplayResults.variableList, trace.statements, precisionConfig, typeLatticePair);
+            var explainer = new MetaInformationExplainerImpl(trace.iidMap);
+            var results = TypedTraceReplayer.replayTrace(traceReplayResults.variableValues, traceReplayResults.variableList, trace.statements, precisionConfig, typeLatticePair, explainer);
             var resultVariables = traceReplayResults.variableList.filter((v:Variable) => v.name === 'RESULT');
             var resultVariable = resultVariables[0];
             callback(results.propagatedEnv.read(resultVariable));
@@ -115,7 +115,8 @@ function testFile(sourceFile:string, config:InferencerConfig, precisionConfig:Pr
             var traceReplayResults = TraceReplayer.replayTrace(trace);
             var typeLatticePair = config();
 
-            TypedTraceReplayer.replayTrace(traceReplayResults.variableValues, traceReplayResults.variableList, trace.statements, precisionConfig, typeLatticePair);
+            var explainer = new MetaInformationExplainerImpl(trace.iidMap);
+            TypedTraceReplayer.replayTrace(traceReplayResults.variableValues, traceReplayResults.variableList, trace.statements, precisionConfig, typeLatticePair, explainer);
             done();
         } catch (e) {
             done(e);
@@ -585,6 +586,62 @@ describe("TypedTraceReplayer", function () {
         it('Should be context sensitive', function (done) {
             test('function id(x){return x;} id(42); RESULT = id("foo");', function (type:TupleType) {
                 assert.deepEqual(type, OString /* 'O' due to test framework */);
+            }, config, precisionConfig, done);
+        });
+    });
+
+    describe("Recoveries", function () {
+        var config = inferenceConfigs.fullIntersection;
+        var precisionConfig = precisionConfigs.flowInsensitive;
+
+        it('No recovery primitive', function (done) {
+            test('RESULT = 42;', function (type:TupleType) {
+                assert.deepEqual(type, ONumber);
+            }, config, precisionConfig, done);
+        });
+        it('No recovery variable', function (done) {
+            test('var x = 42; RESULT = x;', function (type:TupleType) {
+                assert.deepEqual(type, ONumber);
+            }, config, precisionConfig, done);
+        });
+        it('No recovery property', function (done) {
+            test('var o = {p: 42}; RESULT = o.p;', function (type:TupleType) {
+                assert.deepEqual(type, ONumber);
+            }, config, precisionConfig, done);
+        });
+        it('Recovery of existing property', function (done) {
+            test('var o = {}; o = {p: 42}; RESULT = o.p;', function (type:TupleType) {
+                assert.deepEqual(type, ONumber);
+            }, config, precisionConfig, done);
+        });
+        it('Recovery of existing object', function (done) {
+            test('var o = {}; o = {p1: {p2: 42}}; RESULT = o.p1.p2;', function (type:TupleType) {
+                assert.deepEqual(type, ONumber);
+            }, config, precisionConfig, done);
+        });
+        it('Recovery of non-existing property', function (done) {
+            test('var o = {p: 42}; o = {}; RESULT = o.p;', function (type:TupleType) {
+                assert.deepEqual(type, Undefined);
+            }, config, precisionConfig, done);
+        });
+        it('Double recovery of existing property', function (done) {
+            test('var o = {}; o = {p: 42}; var v1 = o.p; var v2 = o.p; RESULT = v1; RESULT = v2;', function (type:TupleType) {
+                assert.deepEqual(type, ONumber);
+            }, config, precisionConfig, done);
+        });
+        it('Unused recoveries of existing property', function (done) {
+            test('var o = {}; o = {p: 42}; o.p; o.p; RESULT = o.p;', function (type:TupleType) {
+                assert.deepEqual(type, ONumber);
+            }, config, precisionConfig, done);
+        });
+        it('Transitively unused recoveries of existing property', function (done) {
+            test('var o = {}; o = {p: 42}; var v1 = o.p; var v2 = o.p; var v3 = o.p; RESULT = o.p;', function (type:TupleType) {
+                assert.deepEqual(type, ONumber);
+            }, config, precisionConfig, done);
+        });
+        it('Far transitively unused recoveries of existing property', function (done) {
+            test('var o = {}; o = {p: 42}; var v1 = o.p; var v11 = v1; var v2 = o.p; var v22 = v2; var v3 = o.p; var v33 = v3; RESULT = o.p;', function (type:TupleType) {
+                assert.deepEqual(type, ONumber);
             }, config, precisionConfig, done);
         });
     });

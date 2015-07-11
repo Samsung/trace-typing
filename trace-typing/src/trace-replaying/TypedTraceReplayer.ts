@@ -32,19 +32,23 @@ interface CallAbstractor {
 interface RecoverPropertyTypeFunc {
     ():TupleType
 }
+
+interface RecoveryMarkedExpressionResult {
+    recovered?: boolean
+    result: TupleType
+}
 /**
  * Returns the type or *undefined* of an expression. An undefined return value indicates that some initial type environment should be used for the value instead.
  */
-class ExpressionDataflowVisitor implements TraceExpressionVisitor<TupleType> {
-    constructor(private variables:Variables<TupleType>, private inferredEnv:Variables<TupleType>) {
+class ExpressionDataflowVisitor implements TraceExpressionVisitor<RecoveryMarkedExpressionResult> {
+    constructor(private variables:RecoveryMarkedVariables<TupleType>, private inferredEnv:Variables<TupleType>) {
     }
 
-    visitRead(e:Read):TupleType {
-        return this.variables.read(e.source);
+    visitRead(e:Read):RecoveryMarkedExpressionResult {
+        return {recovered: this.variables.isRecovered(e.source), result: this.variables.read(e.source)};
     }
 
-    visitFieldRead(e:FieldRead):TupleType {
-
+    visitFieldRead(e:FieldRead):RecoveryMarkedExpressionResult {
         var base:ObjectType;
         var potentialObjectBaseTuple = this.variables.read(e.base);
         if (TypeImpls.TupleAccess.isObject(potentialObjectBaseTuple)) {
@@ -55,8 +59,7 @@ class ExpressionDataflowVisitor implements TraceExpressionVisitor<TupleType> {
         }
 
         var property:TupleType;
-        var useTopAsFallback = false;
-        var nonsensicalReadFallback = useTopAsFallback? TypeImpls.constants.Top: undefined;
+        var nonsensicalReadFallback:RecoveryMarkedExpressionResult = null;
         switch (base.objectKind) {
             case TypeImpls.ObjectKinds.Some:
                 var baseObject = <ObjectType> base;
@@ -66,7 +69,7 @@ class ExpressionDataflowVisitor implements TraceExpressionVisitor<TupleType> {
                     if (property !== undefined && TypeImpls.constants.Top !== property && TypeImpls.TupleAccess.isRecursiveReference(property)) {
                         throw new Error("." + n + " has a recursive reference: " + TypeImpls.toPrettyString(property));
                     }
-                    return property;
+                    return {result: property};
                 } else {
                     return nonsensicalReadFallback;
                 }
@@ -78,11 +81,11 @@ class ExpressionDataflowVisitor implements TraceExpressionVisitor<TupleType> {
         }
     }
 
-    visitNew(e:New):TupleType {
+    visitNew(e:New):RecoveryMarkedExpressionResult {
         return undefined;
     }
 
-    visitPrimitiveExpression(e:PrimitiveExpression):TupleType {
+    visitPrimitiveExpression(e:PrimitiveExpression):RecoveryMarkedExpressionResult {
         return undefined;
     }
 }
@@ -90,21 +93,33 @@ class ExpressionDataflowVisitor implements TraceExpressionVisitor<TupleType> {
 class StatementDataflowVisitor implements TraceStatementVisitor<void> {
     private fixedVariables = new Set<Variable>();
 
-    constructor(private expressionVisitor:TraceExpressionVisitor<TupleType>,
-                private variables:Variables<TupleType>,
+    constructor(private expressionVisitor:TraceExpressionVisitor<RecoveryMarkedExpressionResult>,
+                private variables:RecoveryMarkedVariables<TupleType>,
                 private inferredEnv:Variables<TupleType>,
                 private callMonitor:CallMonitor) {
 
     }
 
     visitWrite(e:Write):void {
+        // TODO refactor to avoid null/undefined/{recovered,result}...
         var rhs = e.rhs.applyExpressionVisitor(this.expressionVisitor);
+
+        var result:TupleType;
         if (rhs === undefined// value-expressions return 'undefined', materialize the type from the inferred environment
             || this.fixedVariables.has(e.sink) // fixed variables receive the inferred type
         ) {
-            rhs = this.inferredEnv.read(e.sink);
+            result = this.inferredEnv.read(e.sink);
+        } else if (rhs === null/* special signaling value that the read did not produce a type */) {
+            result = this.inferredEnv.read(e.sink);
+            this.variables.markRootRecovered(e.sink);
+        } else {
+            if (rhs.recovered) {
+                this.variables.markTransitivelyRecovered(e.sink);
+            }
+            result = rhs.result;
         }
-        this.variables.write(e.sink, rhs);
+
+        this.variables.write(e.sink, result);
     }
 
     visitFieldWrite(e:FieldWrite):void {
@@ -116,6 +131,7 @@ class StatementDataflowVisitor implements TraceStatementVisitor<void> {
     }
 
     visitInfo(e:Info):void {
+        // NB: always generates reads for call-related variables to avoid treating them as dead (calls should be first order in the trace language)
         switch (e.kind) {
             case AST.InfoKinds.FunctionResult:
                 this.fixedVariables.add(e.properties.resultTmp);
@@ -129,11 +145,14 @@ class StatementDataflowVisitor implements TraceStatementVisitor<void> {
                 }
                 break;
             case AST.InfoKinds.FunctionInvocation:
+
+                var args = e.properties.argsTmps.map(tmp => this.variables.read(tmp));
                 if (this.callMonitor) {
-                    this.callMonitor.call(e.meta.iid, e.properties.argsTmps.map(tmp => this.variables.read(tmp)));
+                    this.callMonitor.call(e.meta.iid, args);
                 }
                 break;
             case AST.InfoKinds.FunctionReturn:
+                this.variables.read(e.properties.resultTmp);
                 if (this.callMonitor) {
                     this.callMonitor.return();
                 }
@@ -156,7 +175,7 @@ class StatementDataflowVisitor implements TraceStatementVisitor<void> {
 // FIXME: identify the rare non-monotonicity bug
 var nonMonotonicityHack:Map<Variable, number>;
 /**
- * Implementation of flow & context insensitivity.
+ * Implementation of flow & context insensitivity. + monitoring
  *
  * - Flow insensitivity means that named local variables are updated weakly (should not be surprising)
  * - Context insensitivity means that unnamed variables are weakly updated across calls (a bit counter intuitive, see below).
@@ -165,13 +184,30 @@ var nonMonotonicityHack:Map<Variable, number>;
  * If context insensitivity was implemented by sharing named local variables across contexts, then recursive calls would misbehave.
  * (see examples in /test/TypedTraceReplayerTests)
  */
-class AbstractedVariables implements Variables<TupleType> {
+class MonitoredAbstractedVariables implements RecoveryMarkedVariables<TupleType> {
     public dirty = false;
 
     private variables = new State.VariablesImpl<TupleType>();
-    private abstractionCache = new Map<Variable, Variable>();
 
-    constructor(private lattice:CompleteLattice<TupleType>, private flowConfig:PrecisionConfig, private callAbstractor:CallAbstractor) {
+    private reads = new Set<Variable>();
+    private writes = new Set<Variable>();
+
+    private abstractionCache = new Map<Variable, Variable>(); // concrete variable -> abstracted variable
+    private reverseAbstraction = new Map<Variable, Set<Variable>>(); // abstracted variable -> concrete variables
+
+    // the unabstracted variables that has been directly assigned a recovered type
+    private rootRecovered = new Set<Variable>();
+    // the unabstracted variables that has been read since being assigned a transitively recovered type
+    private usedRecovered = new Set<Variable>();
+    // the abstracted variables that transitively has been assigned a recovered type
+    private transitivelyRecovered = new Set<Variable>();
+
+    // the unabstracted variables and their iid write location
+    private writeLocationMap = new Map<Variable, string>();
+    // the unabstracted variables and their iid read locations
+    private readLocationMap = new Map<Variable, Set<string>>();
+
+    constructor(private lattice:CompleteLattice<TupleType>, private flowConfig:PrecisionConfig, private callAbstractor:CallAbstractor, private currentIIDBox:{iid: string}) {
     }
 
     private abstract(variable:Variable):Variable {
@@ -202,14 +238,28 @@ class AbstractedVariables implements Variables<TupleType> {
         }
         var canonicalized = VariableManager.canonicalize(abstractVariable);
         this.abstractionCache.set(variable, canonicalized);
+        if (!this.reverseAbstraction.has(canonicalized)) {
+            this.reverseAbstraction.set(canonicalized, new Set<Variable>());
+        }
+        this.reverseAbstraction.get(canonicalized).add(variable);
         return canonicalized;
     }
 
     read(variable:Variable) {
+        if (!this.readLocationMap.has(variable)) {
+            this.readLocationMap.set(variable, new Set<string>());
+        }
+        this.readLocationMap.get(variable).add(this.currentIIDBox.iid);
+        this.reads.add(variable);
+        if (this.isRecovered(variable)) {
+            this.usedRecovered.add(variable);
+        }
         return this.variables.read(this.abstract(variable));
     }
 
     write(variable:Variable, typeToWrite:TupleType) {
+        this.writeLocationMap.set(variable, this.currentIIDBox.iid);
+        this.writes.add(variable);
         var resultType = typeToWrite;
         if (resultType === undefined /* TODO rethink/document the need for this guard */) {
             return;
@@ -244,6 +294,57 @@ class AbstractedVariables implements Variables<TupleType> {
             }
             this.variables.write(abstractVariable, resultType);
         }
+    }
+
+    markRootRecovered(variable:Variable) {
+        this.rootRecovered.add(variable);
+        this.markTransitivelyRecovered(variable);
+    }
+
+    markTransitivelyRecovered(variable:Variable) {
+        this.transitivelyRecovered.add(this.abstract(variable));
+    }
+
+    isRecovered(variable:Variable) {
+        return this.transitivelyRecovered.has(this.abstract(variable));
+    }
+
+    getRecoveryData():RecoveryData {
+        var reverseAbstraction = this.reverseAbstraction;
+
+        function unabstract(abstracted:Set<Variable>) {
+            var concrete = new Set<Variable>();
+            abstracted.forEach(a => {
+                reverseAbstraction.get(a).forEach(c => concrete.add(c));
+            });
+            return concrete;
+        }
+
+        return {roots: this.rootRecovered, uses: this.usedRecovered};
+    }
+
+    getDeadVariables():Set<Variable> {
+        var dead = new Set<Variable>();
+        this.writes.forEach(v => {
+            if (!this.reads.has(v)) {
+                dead.add(v)
+            }
+        });
+        return dead;
+    }
+
+    getLiveVariables():Set<Variable> {
+        var live = new Set<Variable>();
+        this.reads.forEach(v => live.add(v));
+        return live;
+    }
+
+    getReadLocationMap() {
+        return this.readLocationMap;
+    }
+
+    getWriteLocationMap() {
+        return this.writeLocationMap;
     }
 }
 
@@ -306,22 +407,23 @@ class ParameterTypesCallstackAbstraction implements CallAbstractor {
     private monitor:CallMonitor;
     private scopeIDAbstraction = new Map<ScopeID, string>();
     private stackIDMap = new Map<string/*iid. Not strictly required, but it gives a large speedup */, Map<FunctionEntry[], string /* id */>>();
+
     constructor(k:number) {
         var stack:FunctionEntry[] = [];
         var scopeIDAbstraction = this.scopeIDAbstraction;
         var stackIDMap = this.stackIDMap;
         var nextParameters:TupleType[];
 
-        function getRepresentative(entryStack:FunctionEntry[], candidateStacksMap:Map<FunctionEntry[], string>): FunctionEntry[] {
+        function getRepresentative(entryStack:FunctionEntry[], candidateStacksMap:Map<FunctionEntry[], string>):FunctionEntry[] {
             var candidateStacks:FunctionEntry[][] = [];
             candidateStacksMap.forEach((v, k) => candidateStacks.push(k));
             var entryStackTop = entryStack[entryStack.length - 1];
             var iid = entryStackTop.iid;
             var stackMatches = candidateStacks.filter(candidateStack => {
-                if(candidateStack.length !== entryStack.length){
+                if (candidateStack.length !== entryStack.length) {
                     return false;
                 }
-                for(var stackIndex = 0; stackIndex < candidateStack.length; stackIndex++) {
+                for (var stackIndex = 0; stackIndex < candidateStack.length; stackIndex++) {
                     var entryStackElement = entryStack[stackIndex];
                     var candidateStackElement = candidateStack[stackIndex];
                     var equalIID = iid === candidateStackElement.iid;
@@ -391,7 +493,7 @@ class ParameterTypesCallstackAbstraction implements CallAbstractor {
 
 }
 
-function replayStatements(inferredEnv:Variables<TupleType>, varibleList:Variable[], statements:TraceStatement[], flowConfig:PrecisionConfig, lattice:CompleteLattice<TupleType>):{
+function replayStatements(inferredEnv:Variables<TupleType>, varibleList:Variable[], statements:TraceStatement[], flowConfig:PrecisionConfig, lattice:CompleteLattice<TupleType>, explainer:MetaInformationExplainer):{
     propagatedEnv: Variables<TupleType>
     inferredEnv: Variables<TupleType>
 } {
@@ -404,7 +506,8 @@ function replayStatements(inferredEnv:Variables<TupleType>, varibleList:Variable
     }
 
     var callAbstraction = flowConfig.callstackSensitiveVariables ? callstackAbstraction : new NoCallAbstraction();
-    var variablesDecorator = new AbstractedVariables(lattice, flowConfig, callAbstraction);
+    var iidBox = {iid: statements[0].meta.iid};
+    var variablesDecorator = new MonitoredAbstractedVariables(lattice, flowConfig, callAbstraction, iidBox);
     var iterationCount = 0;
     var start = new Date();
     do {
@@ -422,9 +525,11 @@ function replayStatements(inferredEnv:Variables<TupleType>, varibleList:Variable
         };
 
         var expressionVisitor = new ExpressionDataflowVisitor(replayState.variables, inferredEnv);
+
         var statementDataflowVisitor = new StatementDataflowVisitor(expressionVisitor, replayState.variables, inferredEnv, callAbstraction.getMonitor());
 
         statements.forEach(function (statement) {
+            iidBox.iid = statement.meta.iid;
             // console.log(statement.toString());
             statement.applyStatementVisitor(statementDataflowVisitor);
             replayState.currentTraceIndex++;
@@ -432,12 +537,52 @@ function replayStatements(inferredEnv:Variables<TupleType>, varibleList:Variable
         var roundEnd = new Date();
         // console.log("Variable type fix point iteration #%d took %d ms", iterationCount, roundEnd.getTime() - roundStart.getTime());
     } while ((flowConfig.flowInsensitiveVariables || flowConfig.contextInsensitiveVariables) && variablesDecorator.dirty);
+
+    function intersect<T>(s1:Set<T>, s2:Set<T>):Set<T> {
+        var intersected = new Set<T>();
+        s1.forEach(e => {
+            if (s2.has(e)) {
+                intersected.add(e);
+            }
+        });
+        return intersected;
+    }
+
+    function getReadLocationStrings(s:Set<Variable>):Set<string> {
+        var locations = new Set<string>();
+        s.forEach(v => {
+            var readIIDs = replayState.variables.getReadLocationMap().get(v);
+            readIIDs.forEach(iid => locations.add(explainer.getIIDSourceLocation(iid).toString()));
+        });
+        return locations;
+    }
+
+    function getWriteLocationStrings(s:Set<Variable>):Set<string> {
+        var locations = new Set<string>();
+        s.forEach(v => {
+            locations.add(explainer.getIIDSourceLocation(replayState.variables.getWriteLocationMap().get(v)).toString());
+        });
+        return locations;
+    }
+
+    var recoveryData = replayState.variables.getRecoveryData();
+    var live = replayState.variables.getLiveVariables();
+    var liveRoots = intersect(recoveryData.roots, live);
+    var rootVarCount = liveRoots.size;
+    var useVarCount = recoveryData.uses.size;
+    var varRatio = (rootVarCount === 0) ? 0 : useVarCount / rootVarCount;
+    console.log("by vars: %d / %d = %d", useVarCount, rootVarCount, varRatio);
+    var rootLocCount = getWriteLocationStrings(liveRoots).size;
+    var useLocCount = getReadLocationStrings(recoveryData.uses).size;
+    var locRatio = (rootLocCount === 0) ? 0 : useLocCount / rootLocCount;
+    console.log("by locs: %d / %d = %d", useLocCount, rootLocCount, locRatio);
+    console.log('"%d","%d","%d","%d";', useVarCount, rootVarCount, useLocCount, rootLocCount);
     var end = new Date();
     // console.log("Variable type fix point found after %d iterations and %d ms", iterationCount, end.getTime() - start.getTime());
     return {propagatedEnv: variablesDecorator, inferredEnv: inferredEnv};
 }
 
-export function replayTrace(variableValues:Map<Variable, Value[]>, variableList:Variable[], statements:TraceStatement[], flowConfig:PrecisionConfig, valueTypeConfig:ValueTypeConfig):{
+export function replayTrace(variableValues:Map<Variable, Value[]>, variableList:Variable[], statements:TraceStatement[], flowConfig:PrecisionConfig, valueTypeConfig:ValueTypeConfig, explainer:MetaInformationExplainer):{
     propagatedEnv: Variables<TupleType>
     inferredEnv: Variables<TupleType>
 } {
@@ -457,5 +602,5 @@ export function replayTrace(variableValues:Map<Variable, Value[]>, variableList:
     );
 
     // console.log("Type propagation...");
-    return replayStatements(inferredEnv, variableList, statements, flowConfig, valueTypeConfig.types);
+    return replayStatements(inferredEnv, variableList, statements, flowConfig, valueTypeConfig.types, explainer);
 }
