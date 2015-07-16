@@ -538,6 +538,13 @@ function replayStatements(inferredEnv:Variables<TupleType>, varibleList:Variable
         // console.log("Variable type fix point iteration #%d took %d ms", iterationCount, roundEnd.getTime() - roundStart.getTime());
     } while ((flowConfig.flowInsensitiveVariables || flowConfig.contextInsensitiveVariables) && variablesDecorator.dirty);
 
+    showRecoveryInformation(replayState.variables, explainer);
+    var end = new Date();
+    // console.log("Variable type fix point found after %d iterations and %d ms", iterationCount, end.getTime() - start.getTime());
+    return {propagatedEnv: variablesDecorator, inferredEnv: inferredEnv};
+}
+
+function showRecoveryInformation(variables: MonitoredAbstractedVariables, explainer: MetaInformationExplainer){
     function intersect<T>(s1:Set<T>, s2:Set<T>):Set<T> {
         var intersected = new Set<T>();
         s1.forEach(e => {
@@ -551,7 +558,7 @@ function replayStatements(inferredEnv:Variables<TupleType>, varibleList:Variable
     function getReadLocationStrings(s:Set<Variable>):Set<string> {
         var locations = new Set<string>();
         s.forEach(v => {
-            var readIIDs = replayState.variables.getReadLocationMap().get(v);
+            var readIIDs = variables.getReadLocationMap().get(v);
             readIIDs.forEach(iid => locations.add(explainer.getIIDSourceLocation(iid).toString()));
         });
         return locations;
@@ -560,28 +567,24 @@ function replayStatements(inferredEnv:Variables<TupleType>, varibleList:Variable
     function getWriteLocationStrings(s:Set<Variable>):Set<string> {
         var locations = new Set<string>();
         s.forEach(v => {
-            locations.add(explainer.getIIDSourceLocation(replayState.variables.getWriteLocationMap().get(v)).toString());
+            locations.add(explainer.getIIDSourceLocation(variables.getWriteLocationMap().get(v)).toString());
         });
         return locations;
     }
 
-    var recoveryData = replayState.variables.getRecoveryData();
-    var live = replayState.variables.getLiveVariables();
+    var recoveryData = variables.getRecoveryData();
+    var live = variables.getLiveVariables();
     var liveRoots = intersect(recoveryData.roots, live);
     var rootVarCount = liveRoots.size;
     var useVarCount = recoveryData.uses.size;
     var varRatio = (rootVarCount === 0) ? 0 : useVarCount / rootVarCount;
-    console.log("by vars: %d / %d = %d", useVarCount, rootVarCount, varRatio);
     var rootLocCount = getWriteLocationStrings(liveRoots).size;
     var useLocCount = getReadLocationStrings(recoveryData.uses).size;
     var locRatio = (rootLocCount === 0) ? 0 : useLocCount / rootLocCount;
+    console.log("by vars: %d / %d = %d", useVarCount, rootVarCount, varRatio);
     console.log("by locs: %d / %d = %d", useLocCount, rootLocCount, locRatio);
     console.log('"%d","%d","%d","%d";', useVarCount, rootVarCount, useLocCount, rootLocCount);
-    var end = new Date();
-    // console.log("Variable type fix point found after %d iterations and %d ms", iterationCount, end.getTime() - start.getTime());
-    return {propagatedEnv: variablesDecorator, inferredEnv: inferredEnv};
 }
-
 export function replayTrace(variableValues:Map<Variable, Value[]>, variableList:Variable[], statements:TraceStatement[], flowConfig:PrecisionConfig, valueTypeConfig:ValueTypeConfig, explainer:MetaInformationExplainer):{
     propagatedEnv: Variables<TupleType>
     inferredEnv: Variables<TupleType>
