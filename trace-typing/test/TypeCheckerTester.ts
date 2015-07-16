@@ -34,18 +34,26 @@ function countUniqueIIDs(messages:IIDRelatedMessage[]) {
     return count;
 }
 
+var showLocation = true;
+
+
 export function testTrace(err:any, trace:Trace, expectedErrorCount:number, inferencerConfig:InferencerConfig, done:Function, flowConfig:PrecisionConfig, typeSystemDescription?:string, enableSJSChecks:boolean = false) {
     if (err) {
         done(err);
         throw err;
     }
+    var explainer = new MetaInformationExplainerImpl(trace.iidMap);
+
+    function locationString(e:IIDRelatedMessage) {
+        return showLocation ? explainer.getIIDSourceLocation(e.iid) + ": " : ""
+    }
+
     try {
         // TODO refactor some of this to separate file
         // console.log("Trace replay...");
         var traceReplayResults = TraceReplayer.replayTrace(trace);
         var typeLatticePair = inferencerConfig();
 
-        var explainer = new MetaInformationExplainerImpl(trace.iidMap);
         var results = TypedTraceReplayer.replayTrace(traceReplayResults.variableValues, traceReplayResults.variableList, trace.statements, flowConfig, typeLatticePair, explainer);
         // console.log("Type checking...");
         var messages:TypeChecker.IIDRelatedConstaintFailureMessage[] = TypeChecker.check(trace.statements, results.propagatedEnv, results.inferredEnv, typeLatticePair.types, undefined, enableSJSChecks);
@@ -57,6 +65,7 @@ export function testTrace(err:any, trace:Trace, expectedErrorCount:number, infer
                 return !pattern.test(location);
             });
         }
+        messages.sort((m1:IIDRelatedMessage, m2:IIDRelatedMessage) => locationString(m1).localeCompare(locationString(m2)));
         var iidErrors = messages.filter(m => m.type === 'error');
         var iidWarnings = messages.filter(m => m.type === 'warning');
 
@@ -79,17 +88,26 @@ export function testTrace(err:any, trace:Trace, expectedErrorCount:number, infer
         var annotated = PersistentResults.annotate([result], trace.sources, description);
         PersistentResults.save(annotated, function () {
             if (true || expectedErrorCount !== -1) {
-                var show = false && expectedErrorCount !== dynamicErrorCount;
+                var show = expectedErrorCount !== dynamicErrorCount;
                 if (dynamicErrorCount > 0 && show) {
                     var showErrorsAndWarnings = true;
-                    var showLocation = true;
                     if (showErrorsAndWarnings) {
-                        function location(e:IIDRelatedMessage) {
-                            return showLocation ? explainer.getIIDSourceLocation(e.iid) + ": " : ""
-                        }
-
-                        iidErrors.forEach(e => console.log("%sError (kind:%s): %s", location(e), TypeChecker.ConstraintKinds[e.constraintKind], e.message));
-                        iidWarnings.forEach(e => console.log("%sWarning (kind:%s): %s", location(e), TypeChecker.ConstraintKinds[e.constraintKind], e.message));
+                        var fileErrorCountOrder:string[] = [];
+                        var fileErrorCounts = new Map<string, number>();
+                        iidErrors.forEach(e => {
+                            var key = explainer.getIIDSourceLocation(e.iid).file;
+                            if (!fileErrorCounts.has(key)) {
+                                fileErrorCounts.set(key, 0);
+                                fileErrorCountOrder.push(key);
+                            }
+                            fileErrorCounts.set(key, fileErrorCounts.get(key) + 1);
+                        });
+                        fileErrorCountOrder.sort((f1, f2) => -1 * (fileErrorCounts.get(f1) - fileErrorCounts.get(f2)));
+                        fileErrorCountOrder.forEach(file => {
+                            console.log("%d errors in %s", fileErrorCounts.get(file), file);
+                        });
+                        iidErrors.forEach(e => console.log("%sError (kind:%s): %s", locationString(e), TypeChecker.ConstraintKinds[e.constraintKind], e.message));
+                        iidWarnings.forEach(e => console.log("%sWarning (kind:%s): %s", locationString(e), TypeChecker.ConstraintKinds[e.constraintKind], e.message));
                     }
                     var sourceLocationErrors:SourceRelatedMessage[] = iidErrors.map(e => {
                         return {
@@ -98,13 +116,18 @@ export function testTrace(err:any, trace:Trace, expectedErrorCount:number, infer
                             type: e.type
                         };
                     });
-
-                    explainer.displayMessagesInBrowser("Typechecking", sourceLocationErrors, function () {
-                        if (expectedErrorCount !== -1) {
-                            assert.equal(dynamicErrorCount, expectedErrorCount);
-                        }
+                    var showInBrowser = true;
+                    if (showInBrowser) {
+                        // sourceLocationErrors = sourceLocationErrors.filter(e => e.sourceLocation.file.indexOf("lib/XMLElement_orig_.js") !== -1);
+                        explainer.displayMessagesInBrowser("Typechecking", sourceLocationErrors, function () {
+                            if (expectedErrorCount !== -1) {
+                                assert.equal(dynamicErrorCount, expectedErrorCount);
+                            }
+                            done();
+                        });
+                    } else {
                         done();
-                    });
+                    }
                 } else {
                     if (expectedErrorCount !== -1) {
                         assert.equal(dynamicErrorCount, expectedErrorCount);
