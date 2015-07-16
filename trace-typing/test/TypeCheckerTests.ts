@@ -206,7 +206,7 @@ var newBigApps = ['esprima', 'qs', 'typescript', /*'validator',*/'xml2js', 'hand
 //newBigApps = ['typescript'];
 
 var bigApps = oldBigApps.concat(newBigApps);
-//bigApps = ['xml2js', 'optparse'];
+bigApps = ['xml2js'];
 bigApps.sort();
 var noBigApps = false;
 var onlyBigApps = true;
@@ -233,20 +233,20 @@ describe.only("Type check traces and display table", function () {
             }
             var allTypes = [
                 [inferenceConfigs.fullIntersection, 'intersection']
-                , [inferenceConfigs.simpleSubtyping, 'simpleSubtyping']
+//                , [inferenceConfigs.simpleSubtyping, 'simpleSubtyping']
                 , [inferenceConfigs.simpleSubtypingWithUnion, 'simpleSubtypingWithUnion']
 //                , [inferenceConfigs.SJS, 'SJS']
             ];
             var allFunctionTypes = [
-//                [TypeLattices.FunctionTypeLatticeKinds.FunctionIntersection, "IntersectionFunctions", false, false, -1]
+                [TypeLattices.FunctionTypeLatticeKinds.FunctionIntersection, "IntersectionFunctions", false, false, -1]
 //                , [TypeLattices.FunctionTypeLatticeKinds.FunctionIntersection, "IntersectionFunctionsWCallStack", false, true, -1]
 //                , [TypeLattices.FunctionTypeLatticeKinds.FunctionIntersection, "IntersectionFunctionsWCallStack-1", false, true, 1]
-                , [TypeLattices.FunctionTypeLatticeKinds.FunctionPointwiseLub, "SingleFunctions", true, false, -1]
+//                , [TypeLattices.FunctionTypeLatticeKinds.FunctionPointwiseLub, "SingleFunctions", true, false, -1]
             ];
 
             var allVariableFlowInsensitivities = [
-//                false
-                , true
+                false
+//                , true
             ]; // TODO add inflationary
             allTypes.forEach((types:[()=>ValueTypeConfig, string])=> {
                 allFunctionTypes.forEach((functionTypes:[TypeLattices.FunctionTypeLatticeKinds, string, boolean, boolean, number])=> {
