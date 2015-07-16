@@ -243,9 +243,6 @@ class PropertyExistsConstraint implements Constraint {
     }
 
     isSatisfied() {
-        if(this.type === undefined){
-            return false;
-        }
         if (Misc.isAbstractFieldName(this.name)) {
             return true;
         }
@@ -255,7 +252,14 @@ class PropertyExistsConstraint implements Constraint {
     }
 
     getFailureMessage() {
-        return util.format(".%s does not exist on object", this.name);
+        var message:string;
+        var useSimpleMessage = false;
+        if(useSimpleMessage){
+            message = util.format(".%s does not exist on object", this.name);
+        }else{
+            message = util.format(".%s does not exist on object %s", this.name, TypeImpls.toPrettyString(new TypeImpls.TupleTypeImpl([this.type])));
+        }
+        return message;
     }
 }
 
@@ -481,16 +485,20 @@ class StatementMonitorVisitor implements TraceStatementVisitor<void> {
                         this.constraints.addErrorConstraint(new PrototypalAssignmentConstraint(e, allocationScope, currentScope));
                     }
                 }else {
-                    var isAssignmentCompatibleConstraint = new IsAssignmentCompatibleConstraint(e, propertyType, rhs, this.assignmentCompatibilityCheck, "Invalid assignment to ." + fieldName);
+                    var message:string;
+                    var useSimpleMessage = false;
+                    if(useSimpleMessage) {
+                        message = "Invalid assignment to ." + fieldName;
+                    }else{
+                        message = util.format("Invalid assignment to .%s of type %s with type %s on %s", fieldName, TypeImpls.toPrettyString(propertyType), TypeImpls.toPrettyString(rhs), TypeImpls.toPrettyString(base));
+                    }
+                    var isAssignmentCompatibleConstraint = new IsAssignmentCompatibleConstraint(e, propertyType, rhs, this.assignmentCompatibilityCheck, message);
                     this.constraints.addErrorConstraint(isAssignmentCompatibleConstraint);
                 }
                 //if(!isAssignmentCompatibleConstraint.isSatisfied()){
                 //    throw new Error("Incompatibility for ." + fieldName);
                 //}
             }
-        }else{
-            var propertyExistsConstraint = new PropertyExistsConstraint(e, undefined, "XXX");
-            this.constraints.addErrorConstraint(propertyExistsConstraint);
         }
     }
 
