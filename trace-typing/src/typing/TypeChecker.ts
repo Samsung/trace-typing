@@ -156,7 +156,7 @@ class IsClassificationValidAccessConstraint implements Constraint {
     public kind = ConstraintKinds.IsClassificationValidAccess;
     private message:string = undefined;
 
-    constructor(public element:TraceElement, private type:ObjectType, private fieldName:string, private dynamic:boolean, private isInitializer: boolean) {
+    constructor(public element:TraceElement, private type:ObjectType, private fieldName:string, private dynamic:boolean, private isInitializer:boolean) {
 
     }
 
@@ -166,7 +166,7 @@ class IsClassificationValidAccessConstraint implements Constraint {
         classificationType.classifications.forEach(classification => {
             switch (classification) {
                 case SJS.ObjectClassification.Arguments:
-                    if(!this.isInitializer) {
+                    if (!this.isInitializer) {
                         satisfied = false;
                         this.message = 'arguments array usage not allowed';
                     }
@@ -254,9 +254,9 @@ class PropertyExistsConstraint implements Constraint {
     getFailureMessage() {
         var message:string;
         var useSimpleMessage = false;
-        if(useSimpleMessage){
+        if (useSimpleMessage) {
             message = util.format(".%s does not exist on object", this.name);
-        }else{
+        } else {
             message = util.format(".%s does not exist on object %s", this.name, TypeImpls.toPrettyString(new TypeImpls.TupleTypeImpl([this.type])));
         }
         return message;
@@ -282,12 +282,12 @@ class IsAssignmentCompatibleConstraint implements Constraint {
 class PrototypalAssignmentConstraint implements Constraint {
     public kind = ConstraintKinds.PrototypalAssignment;
 
-    constructor(public element:TraceElement, private prototypeAllocationScope: ScopeID, private currentScope: ScopeID){
+    constructor(public element:TraceElement, private prototypeAllocationScope:ScopeID, private currentScope:ScopeID) {
     }
 
     isSatisfied() {
         var satisfied = this.prototypeAllocationScope === this.currentScope;
-        if(!satisfied){
+        if (!satisfied) {
             console.warn(this.getFailureMessage());
         }
         console.log("Prototypal check: %s vs %s => %s", this.prototypeAllocationScope, this.currentScope, satisfied)
@@ -312,7 +312,7 @@ class PrototypePropertiesConstraint implements Constraint {
         var undefinedType = new TypeImpls.TupleTypeImpl([TypeImpls.constants.BooleanTop]);
         var nullType = new TypeImpls.TupleTypeImpl([TypeImpls.constants.NullTop]);
         var instance = TypeImpls.TupleAccess.getObject(this.instanceType);
-        if(TypeImpls.TupleAccess.isObject(this.prototypeType)) {
+        if (TypeImpls.TupleAccess.isObject(this.prototypeType)) {
             var prototype = TypeImpls.TupleAccess.getObject(this.prototypeType);
             for (var name in instance.properties) {
                 if (Misc.isAbstractFieldName(name)) { // FIXME this should not be required. Prototypes should not have abstract field names...
@@ -357,8 +357,8 @@ class ExpressionMonitorVisitor implements TraceExpressionVisitor<void> {
     }
 
     visitRead(e:Read):void {
-        if(e.source.named) {
-          // console.log("%s :: %s", e.source.name, TypeImpls.toPrettyString(this.variables.read(e.source)));
+        if (e.source.named) {
+            // console.log("%s :: %s", e.source.name, TypeImpls.toPrettyString(this.variables.read(e.source)));
         }
     }
 
@@ -377,7 +377,7 @@ class ExpressionMonitorVisitor implements TraceExpressionVisitor<void> {
                 this.constraints.addErrorConstraint(new IsClassificationValidAccessConstraint(e, baseObject, fieldName, dynamic, false));
             }
             this.constraints.addErrorConstraint(new PropertyExistsConstraint(e, baseObject, fieldName));
-        }else{
+        } else {
             this.constraints.addErrorConstraint(new PropertyExistsConstraint(e, undefined, "XXX"));
         }
     }
@@ -390,7 +390,7 @@ class ExpressionMonitorVisitor implements TraceExpressionVisitor<void> {
 }
 
 class StatementMonitorVisitor implements TraceStatementVisitor<void> {
-    private scopeIDStack: ScopeID[] = [];
+    private scopeIDStack:ScopeID[] = [];
     private expressionVisitor:ExpressionMonitorVisitor;
 
     private nextInfo:NextInfo = {
@@ -432,8 +432,9 @@ class StatementMonitorVisitor implements TraceStatementVisitor<void> {
 
     visitFieldWrite(e:FieldWrite):void {
         var scopeIDStack = this.scopeIDStack;
-        function getCurrentScopeID(){
-            return scopeIDStack.length === 0? 'global': scopeIDStack[scopeIDStack.length - 1];
+
+        function getCurrentScopeID() {
+            return scopeIDStack.length === 0 ? 'global' : scopeIDStack[scopeIDStack.length - 1];
         }
 
         var base = this.variables.read(e.base);
@@ -477,19 +478,19 @@ class StatementMonitorVisitor implements TraceStatementVisitor<void> {
                 }
 
                 if (this.enableSJSChecks && isFunctionPrototypeField) {
-                    if(TypeImpls.TupleAccess.isObject(rhs)) {
+                    if (TypeImpls.TupleAccess.isObject(rhs)) {
                         // console.log("Assigning .prototype: %s", TypeImpls.toPrettyString(rhs));
                         var allocationScope:ScopeID = SJS.getObjectAllocationContext(TypeImpls.TupleAccess.getObject(rhs));
                         var currentScope = getCurrentScopeID();
                         // console.log("Prototype allocation scopeID: %s, current scopeID: %s.", allocationScope, currentScope);
                         this.constraints.addErrorConstraint(new PrototypalAssignmentConstraint(e, allocationScope, currentScope));
                     }
-                }else {
+                } else {
                     var message:string;
                     var useSimpleMessage = false;
-                    if(useSimpleMessage) {
+                    if (useSimpleMessage) {
                         message = "Invalid assignment to ." + fieldName;
-                    }else{
+                    } else {
                         message = util.format("Invalid assignment to .%s of type %s with type %s on %s", fieldName, TypeImpls.toPrettyString(propertyType), TypeImpls.toPrettyString(rhs), TypeImpls.toPrettyString(base));
                     }
                     var isAssignmentCompatibleConstraint = new IsAssignmentCompatibleConstraint(e, propertyType, rhs, this.assignmentCompatibilityCheck, message);
@@ -536,7 +537,7 @@ class StatementMonitorVisitor implements TraceStatementVisitor<void> {
             this.nextInfo.nextFieldAccessIsDynamic = true;
         }
 
-        if(e.kind === AST.InfoKinds.FunctionEnter) {
+        if (e.kind === AST.InfoKinds.FunctionEnter) {
             scopeIDStack.push(e.properties.scopeID);
         }
         if (e.kind === AST.InfoKinds.FunctionReturn) {
