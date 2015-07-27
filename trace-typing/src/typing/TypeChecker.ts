@@ -674,20 +674,39 @@ check(statements:TraceStatement[], variables:Variables<TupleType>, inferredEnv:V
     var messages:IIDRelatedConstaintFailureMessage[] = [];
     var errorCount = 0;
     var warningCount = 0;
+
+    function exists(message:IIDRelatedConstaintFailureMessage, messages:IIDRelatedConstaintFailureMessage[]) {
+        return messages.some(m=>
+        m.message === message.message &&
+        m.iid === message.iid &&
+        m.type === message.type &&
+        m.constraintKind === message.constraintKind);
+    }
+
     var logger:Logger = {
         error(iid:string, message:string, constraintKind:ConstraintKinds) {
-            messages.push({message: message, iid: iid, type: 'error', constraintKind: constraintKind});
-            errorCount++;
-            if (errorCount % 10000 === 0) {
-                console.warn("%d type errors ...", errorCount);
+            var completeMessage = {
+                message: message,
+                iid: iid,
+                type: 'error',
+                constraintKind: constraintKind
+            };
+            if (!exists(completeMessage, messages)) {
+                messages.push(completeMessage);
+                errorCount++;
+                if (errorCount % 10000 === 0) {
+                    console.warn("%d type errors ...", errorCount);
+                }
             }
-
         },
         warning(iid:string, message:string, constraintKind:ConstraintKinds) {
-            messages.push({message: message, iid: iid, type: 'warning', constraintKind: constraintKind});
-            warningCount++;
-            if (warningCount % 10000 === 0) {
-                console.warn("%d type warnings ...", warningCount);
+            var completeMessage = {message: message, iid: iid, type: 'warning', constraintKind: constraintKind};
+            if (!exists(completeMessage, messages)) {
+                messages.push(completeMessage);
+                warningCount++;
+                if (warningCount % 10000 === 0) {
+                    console.warn("%d type warnings ...", warningCount);
+                }
             }
         }
     };
