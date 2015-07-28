@@ -304,7 +304,7 @@ interface TupleType {
     elements:Type[]
 }
 interface RecursiveReferenceType extends Type {
-    id?: number
+    ids?: number[]
     recursiveReferenceKind: number // enum: RecursiveReferenceKind
 }
 interface ObjectTopDueToRecursionType extends Type {

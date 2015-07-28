@@ -75,7 +75,7 @@ class TypeAscriberImpl implements TypeAscriber {
                     } else {
                         id = this.recursiveTypeIdentifiers.get(instance);
                     }
-                    var recursiveMarker = new TypeImpls.RecursiveReferenceTypeImpl(id);
+                    var recursiveMarker = new TypeImpls.RecursiveReferenceTypeImpl([id]);
                     var tuple = new TypeImpls.TupleTypeImpl([recursiveMarker]);
 
                     return tuple;

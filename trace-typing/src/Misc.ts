@@ -37,11 +37,11 @@ export function isAbstractMapFieldName(fieldName:string) {
     return abstractMapFieldName === fieldName;
 }
 
-export function getAbstractMapFieldName(){
+export function getAbstractMapFieldName() {
     return abstractMapFieldName;
 }
 
-export function getAbstractArrayFieldName(){
+export function getAbstractArrayFieldName() {
     return abstractArrayFieldName;
 }
 
@@ -70,8 +70,18 @@ export function isSetFlatEqual<T>(s1:Set<T>, s2:Set<T>) {
     return containsAll;
 }
 
+export function isArraySetFlatEqual<T>(s1:T[], s2:T[]) {
+    if (s1.length !== s2.length) {
+        return false;
+    }
+    var s2s = new Set<T>();
+    s2.forEach(e => s2s.add(e));
+
+    return s1.some(e => s2s.has(e));
+}
+
 export function mergeFlatSets<T>(s1:Set<T>, s2:Set<T>) {
-    if(isSetFlatEqual(s1, s2)){
+    if (isSetFlatEqual(s1, s2)) {
         return s1;
     }
     var merged = new Set<T>();

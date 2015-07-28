@@ -166,7 +166,7 @@ function makeObjectTypeLattice(propertyTypeLattice:Box<CompleteLattice<TupleType
             return objectTop;
         }
 
-        if(useSJSAscription && (t1.isAbstract !== t2.isAbstract)){
+        if (useSJSAscription && (t1.isAbstract !== t2.isAbstract)) {
             // console.warn("Merging abstract and concrete object to object top...")
             return objectTop;
         }
@@ -269,9 +269,16 @@ function makeFullTypeCrossProductLubLattice(objectLattice:Box<CompleteLattice<Ob
         if (t1 === top || t2 === top) {
             return top;
         }
-        // TODO support merge of multiple recursive references by using a powerset of references...
-        // console.warn("Merging recursive references %s and %s to RecursiveReferenceTop at %s", t1.id, t2.id, path.join("."));
-        return top;
+
+        var ids:number[] = t1.ids.slice();
+        t2.ids.forEach(id => {
+            if (ids.indexOf(id) === -1) {
+                ids.push(id);
+            }
+        });
+        ids.sort();
+        // console.log("lubbed recursives to: (%s)", ids.join(', '));
+        return new TypeImpls.RecursiveReferenceTypeImpl(ids);
     }
 
     function simpleObjectLub(t1:ObjectType, t2:ObjectType):ObjectType {
@@ -380,7 +387,7 @@ function makeFullTypeCrossProductLubLattice(objectLattice:Box<CompleteLattice<Ob
                         }
                     } else {
                         var recursiveReferenceId = TypeImpls.RecursiveTupleTypeManager.prepare();
-                        recursionGuard.get(o1).set(o2, new TypeImpls.RecursiveReferenceTypeImpl(recursiveReferenceId));
+                        recursionGuard.get(o1).set(o2, new TypeImpls.RecursiveReferenceTypeImpl([recursiveReferenceId]));
                         var mergedObjectType = objectLattice.content.lub(o1, o2);
                         lubbedElements[TypeImpls.TypeKinds.Object] = mergedObjectType;
                         recursionGuard.get(o1).delete(o2);

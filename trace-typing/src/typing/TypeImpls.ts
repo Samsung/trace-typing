@@ -56,9 +56,11 @@ export class RecursiveTupleTypeManager {
         return id;
     }
 
-    public static register(tuple:TupleType, id:number) {
-        RecursiveTupleTypeManager.checkExists(id);
-        RecursiveTupleTypeManager.map.get(id).push(tuple);
+    public static register(tuple:TupleType, ids:number[]) {
+        ids.forEach(id => {
+            RecursiveTupleTypeManager.checkExists(id);
+            RecursiveTupleTypeManager.map.get(id).push(tuple);
+        });
     }
 
     public static replace(id:number, objectType:ObjectType, lub:MergeOperator<TupleType>) {
@@ -68,9 +70,10 @@ export class RecursiveTupleTypeManager {
             var tuplesToUpdate = RecursiveTupleTypeManager.map.get(id).slice();
             RecursiveTupleTypeManager.map.get(id).length = 0; // clear content
             tuplesToUpdate.forEach(tupleToUpdate => {
-                TupleAccess.setBottomRecursiveReference(tupleToUpdate);
+                TupleAccess.removeRecursiveReferenceID(tupleToUpdate, id);
                 var mergedObjectType = TupleAccess.getObject(lub(tupleToUpdate, new TupleTypeImpl([objectType])));
                 TupleAccess.setObject(tupleToUpdate, mergedObjectType);
+                // console.log("Resolved recursive to %s", toPrettyString(tupleToUpdate));
             });
         }
         RecursiveTupleTypeManager.map.delete(id);
@@ -95,7 +98,7 @@ export class TupleTypeImpl implements TupleType {
         if (TupleAccess.isRecursiveReference(this)) {
             var recursiveReferenceType = TupleAccess.getRecursiveReference(this);
             if (recursiveReferenceType.recursiveReferenceKind === RecursiveReferenceKinds.Some) {
-                RecursiveTupleTypeManager.register(this, recursiveReferenceType.id);
+                RecursiveTupleTypeManager.register(this, recursiveReferenceType.ids);
             }
         }
     }
@@ -183,6 +186,19 @@ export var TupleAccess = {
     setObjectTopDueToRecursion(type:TupleType) {
         type.elements[TypeKinds.Object] = constants.ObjectTop;
         type.elements[TypeKinds.ObjectTopDueToRecursion] = constants.ObjectTopDueToRecursionTop;
+    },
+    removeRecursiveReferenceID(type:TupleType, toRemove:number) {
+        if(this.isRecursiveReference(type)) {
+            var ids = (<RecursiveReferenceType>(type.elements[TypeKinds.RecursiveReference])).ids.filter(id => id !== toRemove);
+
+            var modified:RecursiveReferenceType;
+            if (ids.length === 0) {
+                modified = constants.RecursiveReferenceBottom;
+            } else {
+                modified = new RecursiveReferenceTypeImpl(ids);
+            }
+            type.elements[TypeKinds.RecursiveReference] = modified;
+        }
     }
 };
 export class SingleFunctionTypeImpl implements SingleFunctionType {
@@ -204,7 +220,7 @@ export class RecursiveReferenceTypeImpl implements RecursiveReferenceType {
     public typeKind = TypeKinds.RecursiveReference;
     public recursiveReferenceKind = RecursiveReferenceKinds.Some;
 
-    constructor(public id:number) {
+    constructor(public ids:number[]) {
     }
 }
 export class ObjectTopDueToRecursionTypeImpl implements ObjectTopDueToRecursionType {
@@ -415,7 +431,7 @@ export function toPrettyString(type:TupleType, forTest?:boolean, depth:number = 
                 } else if (type === constants.RecursiveReferenceTop) {
                     result += "_" + TOP_SYMBOL;
                 } else {
-                    result += (<RecursiveReferenceType>type).id;
+                    result += '(' + (<RecursiveReferenceType>type).ids.join(', ') + ')';
                 }
                 break;
             case TypeKinds.String:
@@ -859,7 +875,13 @@ export function isRecursiveReferenceTypeEqual(t1:RecursiveReferenceType, t2:Recu
         case RecursiveReferenceKinds.Top:
             return true;
         case RecursiveReferenceKinds.Some:
-            return t1.id === t2.id;
+            if (!Misc.isArraySetFlatEqual(t1.ids, t2.ids)) {
+                return false
+            }
+            // normalize
+            t1.ids = t2.ids;
+
+            return true;
         default:
             throw new Error("Unhandled kind: " + t1.recursiveReferenceKind);
     }
