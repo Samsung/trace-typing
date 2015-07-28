@@ -307,6 +307,9 @@ interface RecursiveReferenceType extends Type {
     id?: number
     recursiveReferenceKind: number // enum: RecursiveReferenceKind
 }
+interface ObjectTopDueToRecursionType extends Type {
+    objectTopDueToRecursionKind: number // enum: ObjectTopDueToRecursionKinds
+}
 interface MergeOperator<T> {
     (t1:T, t2:T): T
 }

@@ -304,6 +304,7 @@ function makeFullTypeCrossProductLubLattice(objectLattice:Box<CompleteLattice<Ob
     typeLattices[TypeImpls.TypeKinds.Undefined] = box(makeBotTopLattice(TypeImpls.constants.UndefinedBottom, TypeImpls.constants.UndefinedTop, asGlb));
     typeLattices[TypeImpls.TypeKinds.Null] = box(makeBotTopLattice(TypeImpls.constants.NullBottom, TypeImpls.constants.NullTop, asGlb));
     typeLattices[TypeImpls.TypeKinds.RecursiveReference] = box(new CompleteLatticeImpl(TypeImpls.constants.RecursiveReferenceTop, TypeImpls.constants.RecursiveReferenceBottom, recursiveReferenceLub));
+    typeLattices[TypeImpls.TypeKinds.ObjectTopDueToRecursion] = box(makeBotTopLattice(TypeImpls.constants.ObjectTopDueToRecursionTop, TypeImpls.constants.ObjectTopDueToRecursionBottom, asGlb));
 
     function checkTupleConsistency(t1:TupleType, t2:TupleType) {
         if (DEBUG) {
@@ -436,7 +437,7 @@ function makeFullTypeCrossProductLubLattice(objectLattice:Box<CompleteLattice<Ob
         if (TypeImpls.TupleAccess.isRecursiveReference(result) && TypeImpls.TupleAccess.getRecursiveReference(result) === TypeImpls.constants.RecursiveReferenceTop) {
             console.warn("Resolving ambiguous recursive reference merge with ObjectTop");
             TypeImpls.TupleAccess.setBottomRecursiveReference(result);
-            TypeImpls.TupleAccess.setObject(result, TypeImpls.constants.ObjectTop);
+            TypeImpls.TupleAccess.setObjectTopDueToRecursion(result);
         }
 
         if (multiKindsYieldsTop) {

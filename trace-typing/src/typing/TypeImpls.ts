@@ -176,6 +176,13 @@ export var TupleAccess = {
     },
     isNullOrUndefined(type:TupleType) {
         return this.isUndefined(type) || this.isNull(type);
+    },
+    isObjectTopDueToRecursion(type:TupleType) {
+        return type.elements[TypeKinds.ObjectTopDueToRecursion] === constants.ObjectTopDueToRecursionTop;
+    },
+    setObjectTopDueToRecursion(type:TupleType) {
+        type.elements[TypeKinds.Object] = constants.ObjectTop;
+        type.elements[TypeKinds.ObjectTopDueToRecursion] = constants.ObjectTopDueToRecursionTop;
     }
 };
 export class SingleFunctionTypeImpl implements SingleFunctionType {
@@ -200,7 +207,12 @@ export class RecursiveReferenceTypeImpl implements RecursiveReferenceType {
     constructor(public id:number) {
     }
 }
+export class ObjectTopDueToRecursionTypeImpl implements ObjectTopDueToRecursionType {
+    public typeKind = TypeKinds.ObjectTopDueToRecursion;
 
+    constructor(public objectTopDueToRecursionKind:ObjectTopDueToRecursionKinds) {
+    }
+}
 export enum TypeKinds{
     /*0*/Object,
 /*1*/Null,
@@ -208,9 +220,12 @@ export enum TypeKinds{
 /*3*/Number,
 /*4*/Boolean,
 /*5*/Undefined,
-/*6*/RecursiveReference
+/*6*/RecursiveReference,
+/*7*/ObjectTopDueToRecursion
 }
-
+export enum ObjectTopDueToRecursionKinds {
+    Bottom, Top
+}
 export enum ObjectKinds {
     Bottom, Some, Top
 }
@@ -238,7 +253,6 @@ export enum FunctionKinds {
 export enum CallKinds {
     Constructor, Function, Method
 }
-
 
 export function mapPrimitiveKindToType(kind:AST.PrimitiveKind):Type {
     switch (kind) {
@@ -322,7 +336,8 @@ export function toPrettyString(type:TupleType, forTest?:boolean, depth:number = 
                     type !== constants.NumberBottom &&
                     type !== constants.BooleanBottom &&
                     type !== constants.UndefinedBottom &&
-                    type !== constants.NullBottom;
+                    type !== constants.NullBottom &&
+                    type !== constants.ObjectTopDueToRecursionBottom;
             }).map(e => toPrettyStringInner(e, forTest, depth));
             switch (strings.length) {
                 case 0:
@@ -438,6 +453,13 @@ export function toPrettyString(type:TupleType, forTest?:boolean, depth:number = 
                     result += "_" + TOP_SYMBOL;
                 }
                 break;
+            case TypeKinds.ObjectTopDueToRecursion:
+                if (type === constants.ObjectTopDueToRecursionBottom) {
+                    result += "_" + BOT_SYMBOL;
+                } else if (type === constants.ObjectTopDueToRecursionTop) {
+                    result += "_" + TOP_SYMBOL;
+                }
+                break;
             default:
                 throw new Error("Unhandled type kind: " + type.typeKind);
         }
@@ -512,6 +534,9 @@ export var constants = (function () {
         recursiveReferenceKind: RecursiveReferenceKinds.Bottom
     };
 
+    var objectTopDueToRecursionTop = new ObjectTopDueToRecursionTypeImpl(ObjectTopDueToRecursionKinds.Top);
+    var objectTopDueToRecursionBottom = new ObjectTopDueToRecursionTypeImpl(ObjectTopDueToRecursionKinds.Bottom);
+
     var topObjectClassification = new ObjectClassificationTypeImpl(new Set<SJS.ObjectClassification>());
     topObjectClassification.classifications.add(SJS.ObjectClassification.Object);
     topObjectClassification.classifications.add(SJS.ObjectClassification.Array);
@@ -540,8 +565,8 @@ export var constants = (function () {
         isAbstract: undefined
     };
 
-    var bottoms:Type[] = [numberBottom, stringBottom, booleanBottom, undefinedBottom, nullBottom, recursiveReferenceBottom, objectBottom];
-    var tops:Type[] = [numberTop, stringTop, booleanTop, undefinedTop, nullTop, recursiveReferenceTop, objectTop];
+    var bottoms:Type[] = [numberBottom, stringBottom, booleanBottom, undefinedBottom, nullBottom, recursiveReferenceBottom, objectBottom, objectTopDueToRecursionBottom];
+    var tops:Type[] = [numberTop, stringTop, booleanTop, undefinedTop, nullTop, recursiveReferenceTop, objectTop, objectTopDueToRecursionBottom /* !!! */];
     var bottom:TupleType = {elements: bottoms};
     var top:TupleType = {elements: tops};
 
@@ -568,7 +593,9 @@ export var constants = (function () {
         FunctionTop: functionTop,
         FunctionBottom: functionBottom,
         RecursiveReferenceTop: recursiveReferenceTop,
-        RecursiveReferenceBottom: recursiveReferenceBottom
+        RecursiveReferenceBottom: recursiveReferenceBottom,
+        ObjectTopDueToRecursionTop: objectTopDueToRecursionTop,
+        ObjectTopDueToRecursionBottom: objectTopDueToRecursionBottom
     }
 })();
 
@@ -860,6 +887,8 @@ export function isTypeEqual(t1:Type, t2:Type, debug?:boolean, recursionGuard?:Ma
             return (<any>t1).booleanKind === (<any>t2).booleanKind;
         case TypeKinds.Undefined:
             return (<any>t1).undefinedKind === (<any>t2).undefinedKind;
+        case TypeKinds.ObjectTopDueToRecursion:
+            return (<any>t1).objectTopDueToRecursionKind === (<any>t2).objectTopDueToRecursionKind;
         default:
             throw new Error("Unhandled kind: " + t1.typeKind);
     }
