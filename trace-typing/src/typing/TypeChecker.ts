@@ -656,7 +656,7 @@ class StatementMonitorVisitor implements TraceStatementVisitor<void> {
  */
 export function
 
-check(statements:TraceStatement[], variables:Variables<TupleType>, inferredEnv:Variables<TupleType>, lattice:CompleteLattice<TupleType>, enabledConstraints:ConstraintKinds[] = [], enableSJSChecks:boolean = false):IIDRelatedConstaintFailureMessage[] {
+check(statements:TraceStatement[], variables:Variables<TupleType>, inferredEnv:Variables<TupleType>, lattice:CompleteLattice<TupleType>, explainer:MetaInformationExplainer, enabledConstraints:ConstraintKinds[] = [], enableSJSChecks:boolean = false):IIDRelatedConstaintFailureMessage[] {
     if (enabledConstraints.length === 0) {
         for (var k in ConstraintKinds) {
             if (!isNaN(parseInt(k))) {
@@ -765,7 +765,7 @@ check(statements:TraceStatement[], variables:Variables<TupleType>, inferredEnv:V
     var monitorVisitor = new StatementMonitorVisitor(variables, constraints, assignmentCompatibilityCheck, inferredEnv, lattice, enableSJSChecks);
     statements.forEach(function (statement) {
         if (FIND_TYPE_ERROR_SOURCE) {
-            console.log(statement.toString());
+            console.log("%s: %s", explainer.getIIDSourceLocation(statement.meta.iid).toString(true), statement.toString());
         }
         statement.applyStatementVisitor(monitorVisitor);
         replayState.currentTraceIndex++;
