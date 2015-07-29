@@ -172,7 +172,10 @@ var allTests = {
         "../exercisedApps/qs",
         "../exercisedApps/typescript",
         "../exercisedApps/babel",
-        "../exercisedApps/esprima"
+        "../exercisedApps/esprima",
+
+        // "new new" benchmarks
+        "../exercisedApps/xmlbuilder"
     ]
 }
 
