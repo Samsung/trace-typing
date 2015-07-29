@@ -49,7 +49,7 @@ export function testTrace(err:any, trace:Trace, expectedErrorCount:number, infer
     }
 
     function isInterestingFile(fileName:string) {
-        return (fileName.indexOf("lib/XMLNode_orig_.js") !== -1 || fileName.indexOf("lib/xml2js_orig_.js") !== -1);
+        return true || (fileName.indexOf("lib/XMLNode_orig_.js") !== -1 || fileName.indexOf("lib/XMLElement_orig_.js") !== -1);
     }
 
     try {
@@ -60,7 +60,7 @@ export function testTrace(err:any, trace:Trace, expectedErrorCount:number, infer
 
         var results = TypedTraceReplayer.replayTrace(traceReplayResults.variableValues, traceReplayResults.variableList, trace.statements, flowConfig, typeLatticePair, explainer);
         // console.log("Type checking...");
-        var messages:TypeChecker.IIDRelatedConstaintFailureMessage[] = TypeChecker.check(trace.statements, results.propagatedEnv, results.inferredEnv, typeLatticePair.types, undefined, enableSJSChecks);
+        var messages:TypeChecker.IIDRelatedConstaintFailureMessage[] = TypeChecker.check(trace.statements, results.propagatedEnv, results.inferredEnv, typeLatticePair.types, new MetaInformationExplainerImpl(trace.iidMap), undefined, enableSJSChecks);
         var noTransitiveDependencies = false;
         if (noTransitiveDependencies) {
             messages = messages.filter(m => {
@@ -129,7 +129,7 @@ export function testTrace(err:any, trace:Trace, expectedErrorCount:number, infer
                             type: e.type
                         };
                     });
-                    var showInBrowser = true;
+                    var showInBrowser = false;
                     sourceLocationErrors = sourceLocationErrors.filter(e => isInterestingFile(e.sourceLocation.file));
                     if (showInBrowser && sourceLocationErrors.length > 0) {
                         explainer.displayMessagesInBrowser("Typechecking", sourceLocationErrors, innerDone);
