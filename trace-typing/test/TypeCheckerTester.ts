@@ -2,7 +2,7 @@
 ///<reference path="../typings/mocha/mocha.d.ts"/>
 ///<reference path="../src/types.d.ts"/>
 
-import assert = require("assert");
+import assert = require("./assert-async-mocha");
 import path = require("path");
 import fs = require("fs");
 
@@ -48,6 +48,10 @@ export function testTrace(err:any, trace:Trace, expectedErrorCount:number, infer
         return showLocation ? explainer.getIIDSourceLocation(e.iid) + ": " : ""
     }
 
+    function isInterestingFile(fileName:string) {
+        return (fileName.indexOf("lib/XMLNode_orig_.js") !== -1 || fileName.indexOf("lib/xml2js_orig_.js") !== -1);
+    }
+
     try {
         // TODO refactor some of this to separate file
         // console.log("Trace replay...");
@@ -86,6 +90,15 @@ export function testTrace(err:any, trace:Trace, expectedErrorCount:number, infer
         // console.log("Output...");
         var description = (typeSystemDescription ? typeSystemDescription : "Some type system") + " w. " + JSON.stringify(flowConfig);
         var annotated = PersistentResults.annotate([result], trace.sources, description);
+        var successfulTest = expectedErrorCount === -1 || (expectedErrorCount === dynamicErrorCount);
+
+        function innerDone() {
+            if (expectedErrorCount !== -1) {
+                assert.equal(dynamicErrorCount, expectedErrorCount, done);
+                return;
+            }
+            done();
+        }
         PersistentResults.save(annotated, function () {
             if (true || expectedErrorCount !== -1) {
                 var show = expectedErrorCount !== dynamicErrorCount;
@@ -106,7 +119,7 @@ export function testTrace(err:any, trace:Trace, expectedErrorCount:number, infer
                         fileErrorCountOrder.forEach(file => {
                             console.log("%d errors in %s", fileErrorCounts.get(file), file);
                         });
-                        iidErrors.forEach(e => console.log("%sError (kind:%s): %s", locationString(e), TypeChecker.ConstraintKinds[e.constraintKind], e.message));
+                        iidErrors.forEach(e => true || isInterestingFile(locationString(e)) ? console.log("%sError (kind:%s): %s", locationString(e), TypeChecker.ConstraintKinds[e.constraintKind], e.message) : undefined);
                         iidWarnings.forEach(e => console.log("%sWarning (kind:%s): %s", locationString(e), TypeChecker.ConstraintKinds[e.constraintKind], e.message));
                     }
                     var sourceLocationErrors:SourceRelatedMessage[] = iidErrors.map(e => {
@@ -117,25 +130,17 @@ export function testTrace(err:any, trace:Trace, expectedErrorCount:number, infer
                         };
                     });
                     var showInBrowser = true;
-                    if (showInBrowser) {
-                        // sourceLocationErrors = sourceLocationErrors.filter(e => e.sourceLocation.file.indexOf("lib/XMLElement_orig_.js") !== -1);
-                        explainer.displayMessagesInBrowser("Typechecking", sourceLocationErrors, function () {
-                            if (expectedErrorCount !== -1) {
-                                assert.equal(dynamicErrorCount, expectedErrorCount);
-                            }
-                            done();
-                        });
+                    sourceLocationErrors = sourceLocationErrors.filter(e => isInterestingFile(e.sourceLocation.file));
+                    if (showInBrowser && sourceLocationErrors.length > 0) {
+                        explainer.displayMessagesInBrowser("Typechecking", sourceLocationErrors, innerDone);
                     } else {
-                        done();
+                        innerDone();
                     }
                 } else {
-                    if (expectedErrorCount !== -1) {
-                        assert.equal(dynamicErrorCount, expectedErrorCount);
-                    }
-                    done();
+                    innerDone();
                 }
             } else {
-                done();
+                innerDone();
             }
         });
 
