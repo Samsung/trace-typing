@@ -161,6 +161,16 @@ describe("TypeChecker unit tests", function () {
                 testFile('fixtures/PaperExample1.js', 0, config, done, flowConfig);
             });
         });
+        describe("Prototyping", function () {
+            var config = inferenceConfigs.fullIntersection;
+            var flowConfig = {flowInsensitiveVariables: false, contextInsensitiveVariables: true};
+            it.only('Should handle PrototypingExample1', function (done) {
+                testFile('fixtures/PrototypingExample1.js', 0, config, done, flowConfig);
+            });
+            it('Should handle PrototypingExample2', function (done) {
+                testFile('fixtures/PrototypingExample2.js', 0, config, done, flowConfig);
+            });
+        });
         describe("Fixpointing", function () {
             var config = inferenceConfigs.simpleSubtyping;
             var flowConfig = {flowInsensitiveVariables: true, contextInsensitiveVariables: true};
@@ -215,7 +225,7 @@ function ignoreFile(file:string) {
     var isBigApp = bigApps.some(app => file.indexOf(app) !== -1);
     return is_JSON_NaN_bug || (onlyBigApps && !isBigApp) || (noBigApps && isBigApp);
 }
-describe.only("Type check traces and display table", function () {
+describe("Type check traces and display table", function () {
     var mode = 'RUN';
     //var mode = 'DISPLAY';
     //var mode = 'PIVOT';
