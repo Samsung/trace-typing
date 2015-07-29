@@ -1,0 +1,6 @@
+{
+  "name": "trace-typing-benchmark_xmlbuilder",
+  "devDependencies": {
+    "xmlbuilder": "^2.6.4"
+  }
+}
