@@ -207,6 +207,8 @@ class MonitoredAbstractedVariables implements RecoveryMarkedVariables<TupleType>
     // the unabstracted variables and their iid read locations
     private readLocationMap = new Map<Variable, Set<string>>();
 
+    private readLocationMapWithTopDueToRecursion = new Map<Variable, Set<string>>();
+
     constructor(private lattice:CompleteLattice<TupleType>, private flowConfig:PrecisionConfig, private callAbstractor:CallAbstractor, private currentIIDBox:{iid: string}) {
     }
 
@@ -254,7 +256,20 @@ class MonitoredAbstractedVariables implements RecoveryMarkedVariables<TupleType>
         if (this.isRecovered(variable)) {
             this.usedRecovered.add(variable);
         }
-        return this.variables.read(this.abstract(variable));
+        var result = this.variables.read(this.abstract(variable));
+
+        var isObjectTop = TypeImpls.TupleAccess.isObject(result) && TypeImpls.TupleAccess.getObject(result) === TypeImpls.constants.ObjectTop;
+        var isObjectTopDueToRecursion = TypeImpls.TupleAccess.isObjectTopDueToRecursion(result);
+        if (isObjectTopDueToRecursion) {
+            console.log("BANG!");
+            if (!this.readLocationMapWithTopDueToRecursion.has(variable)) {
+                this.readLocationMapWithTopDueToRecursion.set(variable, new Set<string>());
+            }
+            this.readLocationMapWithTopDueToRecursion.get(variable).add(this.currentIIDBox.iid);
+        } else if (isObjectTop) {
+            //console.log("BOOM!");
+        }
+        return result;
     }
 
     write(variable:Variable, typeToWrite:TupleType) {
@@ -345,6 +360,10 @@ class MonitoredAbstractedVariables implements RecoveryMarkedVariables<TupleType>
 
     getWriteLocationMap() {
         return this.writeLocationMap;
+    }
+
+    countLocationsWithTopDueToRecursion() {
+        return this.readLocationMapWithTopDueToRecursion.size;
     }
 }
 
@@ -538,13 +557,19 @@ function replayStatements(inferredEnv:Variables<TupleType>, varibleList:Variable
         // console.log("Variable type fix point iteration #%d took %d ms", iterationCount, roundEnd.getTime() - roundStart.getTime());
     } while ((flowConfig.flowInsensitiveVariables || flowConfig.contextInsensitiveVariables) && variablesDecorator.dirty);
 
-    showRecoveryInformation(replayState.variables, explainer);
+    if (false) {
+        showRecoveryInformation(replayState.variables, explainer);
+    }
+    if (false) {
+        console.log("TopDueToRecursion-count: %d", variablesDecorator.countLocationsWithTopDueToRecursion());
+    }
+
     var end = new Date();
     // console.log("Variable type fix point found after %d iterations and %d ms", iterationCount, end.getTime() - start.getTime());
     return {propagatedEnv: variablesDecorator, inferredEnv: inferredEnv};
 }
 
-function showRecoveryInformation(variables: MonitoredAbstractedVariables, explainer: MetaInformationExplainer){
+function showRecoveryInformation(variables:MonitoredAbstractedVariables, explainer:MetaInformationExplainer) {
     function intersect<T>(s1:Set<T>, s2:Set<T>):Set<T> {
         var intersected = new Set<T>();
         s1.forEach(e => {
