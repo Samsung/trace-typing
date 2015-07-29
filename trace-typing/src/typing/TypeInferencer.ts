@@ -187,7 +187,13 @@ class TypeAscriberImpl implements TypeAscriber {
             for (var p in properties) {
                 var property:Value[] = properties[p];
                 if (property !== undefined) {
-                    var propertyType = that.inferencer.inferType(property, path.concat([p]));
+                    var propertyType:TupleType;
+                    if (p === 'constructor') { // FIXME - huge, but sound, hack. Sidesteps a nasty recursion case in coffescript applications
+                        // console.warn("Ascribing Top to the .constructor property");
+                        propertyType = TypeImpls.constants.Top;
+                    } else {
+                        propertyType = that.inferencer.inferType(property, path.concat([p]));
+                    }
                     propertyTypes[p] = propertyType;
                 }
             }
