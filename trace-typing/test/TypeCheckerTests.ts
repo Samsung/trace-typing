@@ -148,12 +148,6 @@ describe("TypeChecker unit tests", function () {
                 testSource("(function(){ function id(v){return v;} var o = {p: 87}; var v = id(42); v = id('foo'); o.p = v; o.p;})()", 0, config, done, flowConfig);
             });
         });
-        describe("function calls", function () {
-            // TODO make tests
-        });
-        describe("function assignments", function () {
-            // TODO make tests
-        });
         describe("Paper", function () {
             var config = inferenceConfigs.simpleSubtyping;
             var flowConfig = {flowInsensitiveVariables: false, contextInsensitiveVariables: true};
@@ -161,14 +155,52 @@ describe("TypeChecker unit tests", function () {
                 testFile('fixtures/PaperExample1.js', 0, config, done, flowConfig);
             });
         });
-        describe("Prototyping", function () {
-            var config = inferenceConfigs.fullIntersection;
-            var flowConfig = {flowInsensitiveVariables: false, contextInsensitiveVariables: true};
-            it.only('Should handle PrototypingExample1', function (done) {
-                testFile('fixtures/PrototypingExample1.js', 0, config, done, flowConfig);
+        describe("calls to non-functions", function () {
+            var config = inferenceConfigs.simpleSubtypingWithUnion
+            var flowConfig = {flowInsensitiveVariables: true, contextInsensitiveVariables: false};
+            it("Should allow function invocations", function (done) {
+                testSource("var f = function(){}; f()", 0, config, done, flowConfig);
+            });
+            it("Should not allow function constructor invocations", function (done) {
+                testSource("var f = function(){}; new f()", 0, config, done, flowConfig);
+            });
+            it("Should allow invocations of object-merge-erased functions", function (done) {
+                testSource("var f = {}; f = function(){}; f()", 0, config, done, flowConfig);
+            });
+            it("Should almost allow constructor invocations of object-merge-erased functions", function (done) {
+                testSource("var f = {}; f = function(){}; new f()", 1, config, done, flowConfig);
+            });
+            it("Should allow invocations of primitive-merge-erased functions", function (done) {
+                testSource("var f = 42; f = function(){}; f()", 0, config, done, flowConfig);
+            });
+            it("Should allow invocations of primitive-merge-erased functions", function (done) {
+                testSource("var f = 42; f = function(){}; new f()", 0, config, done, flowConfig);
+            });
+        });
+        describe("module.exports examples", function () {
+            var config = inferenceConfigs.simpleSubtypingWithUnion
+            var flowConfig = {flowInsensitiveVariables: false, contextInsensitiveVariables: false};
+            it('Should now allow call to `modules.export = function(){}`', function (done) {
+                testFile('fixtures/ModuleExports1.js', 1, config, done, flowConfig);
+            });
+            it('Should not allow handle constructor call to `modules.export = function(){}`', function (done) {
+                testFile('fixtures/ModuleExports2.js', 1, config, done, flowConfig);
+            });
+        });
+        describe("Prototyping in xml2js", function () {
+            var config = inferenceConfigs.simpleSubtypingWithUnion;
+            var flowConfig = {flowInsensitiveVariables: true, contextInsensitiveVariables: true};
+            it('Should almost handle PrototypingExample1', function (done) {
+                testFile('fixtures/xml2js_PrototypingExample1.js', 1 /* due to constructor call requiring .prototype on merged object ... */, config, done, flowConfig);
             });
             it('Should handle PrototypingExample2', function (done) {
-                testFile('fixtures/PrototypingExample2.js', 0, config, done, flowConfig);
+                testFile('fixtures/xml2js_PrototypingExample2.js', 0, config, done, flowConfig);
+            });
+            it('Should handle PrototypingExample3', function (done) {
+                testFile('fixtures/xml2js_PrototypingExample3.js', 0, config, done, flowConfig);
+            });
+            it('Should almost handle PrototypingExample4', function (done) {
+                testFile('fixtures/xml2js_PrototypingExample4.js', 2 /* due to constructor call requiring .prototype on merged object ... */, config, done, flowConfig);
             });
         });
         describe("Fixpointing", function () {
@@ -211,12 +243,13 @@ if (SJSSpecificsOnly) {
 }
 
 var oldBigApps = [/*'gulp', */ 'lodash', 'minimist', 'optparse', /*'express', 'grunt', */ 'lazy.js', 'underscore', /*'coffee-script'*/, 'escodegen'];
-//oldBigApps = [];
-var newBigApps = ['esprima', 'qs', 'typescript', /*'validator',*/'xml2js', 'handlebars'];
-//newBigApps = ['typescript'];
 
-var bigApps = oldBigApps.concat(newBigApps);
-bigApps = ['xml2js'];
+var newBigApps = ['esprima', 'qs', 'typescript', /*'validator',*/'xml2js', 'handlebars'];
+
+var newNewBigApps = ['xmlbuilder'];
+
+var bigApps = oldBigApps.concat(newBigApps).concat(newNewBigApps);
+bigApps = ['xml2js', 'xmlbuilder'];
 bigApps.sort();
 var noBigApps = false;
 var onlyBigApps = true;
@@ -225,7 +258,7 @@ function ignoreFile(file:string) {
     var isBigApp = bigApps.some(app => file.indexOf(app) !== -1);
     return is_JSON_NaN_bug || (onlyBigApps && !isBigApp) || (noBigApps && isBigApp);
 }
-describe("Type check traces and display table", function () {
+describe.only("Type check traces and display table", function () {
     var mode = 'RUN';
     //var mode = 'DISPLAY';
     //var mode = 'PIVOT';
@@ -243,7 +276,7 @@ describe("Type check traces and display table", function () {
             }
             var allTypes = [
                 [inferenceConfigs.fullIntersection, 'intersection']
-//                , [inferenceConfigs.simpleSubtyping, 'simpleSubtyping']
+                , [inferenceConfigs.simpleSubtyping, 'simpleSubtyping']
                 , [inferenceConfigs.simpleSubtypingWithUnion, 'simpleSubtypingWithUnion']
 //                , [inferenceConfigs.SJS, 'SJS']
             ];
@@ -339,7 +372,7 @@ describe("Type check traces and display table", function () {
                 });
                 // sort lines for prettyness
                 var outDir = ConfigLoader.load().experimentResultDirectory;
-                console.log('%s:',source);
+                console.log('%s:', source);
                 bySourceCSVLines.forEach((lines:string[], source:string) => {
                     lines.sort();
                     lines.forEach(l => console.log("  %s", l));
