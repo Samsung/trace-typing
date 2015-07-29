@@ -68,7 +68,7 @@ function TraceBuildingAnalysis(tmpManager, astQueries, contextUtil, coercionUtil
 
                 // convention: for constructor calls, the base points to the prototype
                 var baseTmp = tmpManager.getIntermediaryTmp("prototype");
-                traceBuilder.makeFieldReadStatement(functionTmp, "prototype", baseTmp);
+                traceBuilder.makeFieldReadStatement(functionTmp, "prototype", baseTmp, undefined, iid);
                 base = f.prototype;
             } else {
                 baseTmp = tmpManager.getIntermediaryTmp("non-function-constructor");
@@ -107,7 +107,7 @@ function TraceBuildingAnalysis(tmpManager, astQueries, contextUtil, coercionUtil
                 newArgsTmps = [];
                 for (var i = 0; i < newArgs.length; i++) {
                     var unboxedArgTmp = tmpManager.getIntermediaryTmp("unboxed-argument-" + i);
-                    traceBuilder.makeFieldReadStatement(tmps.argsTmps[1], i + '', unboxedArgTmp);
+                    traceBuilder.makeFieldReadStatement(tmps.argsTmps[1], i + '', unboxedArgTmp, undefined, iid);
                     newArgsTmps[i] = unboxedArgTmp;
                 }
             }
@@ -226,7 +226,7 @@ function TraceBuildingAnalysis(tmpManager, astQueries, contextUtil, coercionUtil
                 traceBuilder.makeFieldWriteStatement(allocationTmp, literalPropertyNames[i], literalPropertyValues[i], true, iid);
             }
 
-            traceBuilder.makeMoveStatement(resultTmp, allocationTmp);
+            traceBuilder.makeMoveStatement(resultTmp, allocationTmp, iid);
         }
         tmpManager.pushValueTmp(resultTmp, val, true);
         return {result: val};
@@ -529,7 +529,7 @@ function TraceBuildingAnalysis(tmpManager, astQueries, contextUtil, coercionUtil
             traceBuilder.makeMoveStatement(tmpManager.getVarTmp('__filename'), filenameTmp, iid);
             traceBuilder.makeMoveStatement(tmpManager.getVarTmp('__dirname'), dirnameTmp, iid);
             var exportsTmp = tmpManager.getIntermediaryTmp('__exports');
-            traceBuilder.makeFieldReadStatement(moduleTmp, 'exports', exportsTmp, iid);
+            traceBuilder.makeFieldReadStatement(moduleTmp, 'exports', exportsTmp, undefined, iid);
             traceBuilder.makeMoveStatement(tmpManager.getVarTmp('exports'), exportsTmp, iid);
         }
         moduleManager = new ModuleManager(module);
