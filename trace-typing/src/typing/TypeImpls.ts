@@ -71,7 +71,13 @@ export class RecursiveTupleTypeManager {
             RecursiveTupleTypeManager.map.get(id).length = 0; // clear content
             tuplesToUpdate.forEach(tupleToUpdate => {
                 TupleAccess.removeRecursiveReferenceID(tupleToUpdate, id);
-                var mergedObjectType = TupleAccess.getObject(lub(tupleToUpdate, new TupleTypeImpl([objectType])));
+                var mergedObjectType:ObjectType;
+                if (TupleAccess.isObject(tupleToUpdate)) {
+                    var recursiveObjectTuple = new TupleTypeImpl([objectType]);
+                    mergedObjectType = TupleAccess.getObject(lub(tupleToUpdate, recursiveObjectTuple));
+                } else {
+                    mergedObjectType = objectType;
+                }
                 TupleAccess.setObject(tupleToUpdate, mergedObjectType);
                 // console.log("Resolved recursive to %s", toPrettyString(tupleToUpdate));
             });
