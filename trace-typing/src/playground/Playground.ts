@@ -231,7 +231,7 @@ export class Playground {
 
                             });
 
-                            var messages = TypeChecker.check(trace.statements, results.propagatedEnv, results.inferredEnv, typeLatticePair.types, constraints);
+                            var messages = TypeChecker.check(trace.statements, results.propagatedEnv, results.inferredEnv, typeLatticePair.types, new MetaInformationExplainerImpl(trace.iidMap), constraints);
                             return {
                                 types: <any>[],
                                 failures: messages
