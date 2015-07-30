@@ -701,7 +701,12 @@ check(statements:TraceStatement[], variables:Variables<TupleType>, inferredEnv:V
             }
         },
         warning(iid:string, message:string, constraintKind:ConstraintKinds) {
-            var completeMessage = {message: message, iid: iid, type: 'warning', constraintKind: constraintKind};
+            var completeMessage = {
+                message: message,
+                iid: iid,
+                type: 'warning',
+                constraintKind: constraintKind
+            };
             if (!exists(completeMessage, messages)) {
                 messages.push(completeMessage);
                 warningCount++;
@@ -773,6 +778,7 @@ check(statements:TraceStatement[], variables:Variables<TupleType>, inferredEnv:V
             console.log("Type checked %d statements", replayState.currentTraceIndex);
         }
     });
+    // console.log("Type Errors: %d", messages.filter(m => m.type === 'error').length);
     return messages;
 }
 
