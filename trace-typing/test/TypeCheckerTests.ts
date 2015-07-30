@@ -203,6 +203,31 @@ describe("TypeChecker unit tests", function () {
                 testFile('fixtures/xml2js_PrototypingExample4.js', 2 /* due to constructor call requiring .prototype on merged object ... */, config, done, flowConfig);
             });
         });
+        describe.only("Class hierarchies in transpiled code", function () {
+            var configs = [{
+                config: inferenceConfigs.simpleSubtypingWithUnion,
+                name: 'simpleSubtypingWithUnion'
+            }, {
+                config: inferenceConfigs.fullIntersection,
+                name: 'fullIntersection'
+            }];
+            var flowConfig = {flowInsensitiveVariables: false, contextInsensitiveVariables: false};
+            var languages = ['coffeescript', 'typescript'];
+            var cases = ['Super', 'Sub', 'InstantiateSuper', 'InstantiateSub', 'CallSuperMethodThroughSuper', 'CallSubMethodThroughSub', 'CallSuperMethodThroughSub'];
+            configs.forEach(configAndName => describe(util.format("In configuration %s", configAndName.name), function () {
+                var config = configAndName.config;
+                languages.forEach(l => describe(l, function () {
+                    cases.forEach(c => {
+                        if (!(c === 'Sub' && config === inferenceConfigs.simpleSubtypingWithUnion && l === 'typescript')) {
+                            return;
+                        }
+                        it("Should handle " + c, function (done) {
+                            testFile(util.format('fixtures/%s-hierarchy/%s.js', l, c), 0, config, done, flowConfig);
+                        })
+                    });
+                }));
+            }))
+        });
         describe("Fixpointing", function () {
             var config = inferenceConfigs.simpleSubtyping;
             var flowConfig = {flowInsensitiveVariables: true, contextInsensitiveVariables: true};
@@ -258,7 +283,7 @@ function ignoreFile(file:string) {
     var isBigApp = bigApps.some(app => file.indexOf(app) !== -1);
     return is_JSON_NaN_bug || (onlyBigApps && !isBigApp) || (noBigApps && isBigApp);
 }
-describe.only("Type check traces and display table", function () {
+describe("Type check traces and display table", function () {
     var mode = 'RUN';
     //var mode = 'DISPLAY';
     //var mode = 'PIVOT';
