@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 ///<reference path="../types.d.ts"/>
+///<reference path="../../typings/node/node.d.ts"/>
+
+import util = require('util');
 import AST = require('../TraceLanguageAST');
 import TypeImpls = require('./TypeImpls');
 import Misc = require('../Misc');
@@ -160,7 +163,11 @@ class TypeAscriberImpl implements TypeAscriber {
                                 if (propertyValues[n] === undefined) {
                                     propertyValues[n] = [];
                                 }
-                                propertyValues[n].push(propertyValue);
+                                if (n === 'prototype' && propertyValues[n].length > 0) {
+                                    propertyValues[n][0] = propertyValue; // FIXME always picks the latest .prototype assignment, introducing weird flow-sensitivity that is correct in practice. Otherwise (function-)prototype-reassignments are merged with the default empty object...
+                                } else {
+                                    propertyValues[n].push(propertyValue);
+                                }
                             }
                         });
                     });
@@ -188,12 +195,7 @@ class TypeAscriberImpl implements TypeAscriber {
                 var property:Value[] = properties[p];
                 if (property !== undefined) {
                     var propertyType:TupleType;
-                    if (p === 'constructor') { // FIXME - huge, but sound, hack. Sidesteps a nasty recursion case in coffescript applications
-                        // console.warn("Ascribing Top to the .constructor property");
-                        propertyType = TypeImpls.constants.Top;
-                    } else {
-                        propertyType = that.inferencer.inferType(property, path.concat([p]));
-                    }
+                    propertyType = that.inferencer.inferType(property, path.concat([p]));
                     propertyTypes[p] = propertyType;
                 }
             }
@@ -229,7 +231,7 @@ class TypeAscriberImpl implements TypeAscriber {
 
     ascribeFunctionType(sig:DynamicFunctionSignature, path:string[]):SingleFunctionType {
         var base = this.ascribeType(sig.base, path.concat(["<BASE>"]));
-        var args = sig.args.map(arg => this.ascribeType(arg, path.concat(["<ARGS>"])));
+        var args = sig.args.map((arg, index) => this.ascribeType(arg, path.concat([util.format("<ARG-%d>", index)])));
         var result = this.ascribeType(sig.result, path.concat(["<RETURN>"]));
         var callKinds = new Set<TypeImpls.CallKinds>();
         if (sig.isConstructorCall) {
@@ -246,6 +248,7 @@ export class TypeInferencerImpl implements TypeInferencer {
     private ascriber:TypeAscriber;
 
     constructor(private lattice:CompleteLattice<TupleType>, private initialFunctionTypeMaker:MergeOperator<FunctionType>, useSJSAscription?:boolean) {
+        TypeImpls.RecursiveTupleTypeManager.reset();
         this.ascriber = new TypeAscriberImpl(this, lattice, !!useSJSAscription);
     }
 

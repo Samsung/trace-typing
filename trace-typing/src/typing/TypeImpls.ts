@@ -44,8 +44,12 @@ export class ObjectTypeImpl implements ObjectType {
 }
 
 export class RecursiveTupleTypeManager {
-    private static map = new Map<number, TupleType[]>();
+    private static map: Map<number, TupleType[]>;
     private static nextId = 0;
+
+    public static reset(){
+        RecursiveTupleTypeManager.map = new Map<number, TupleType[]>();
+    }
 
     public static prepare():number {
         var id = RecursiveTupleTypeManager.nextId++;
