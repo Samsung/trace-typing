@@ -1,4 +1,5 @@
 ///<reference path="../types.d.ts"/>
+import util = require('util');
 import State = require("./State");
 import TypeImpls = require("../typing/TypeImpls");
 import TypeInferencer = require("../typing/TypeInferencer");
@@ -620,7 +621,7 @@ export function replayTrace(variableValues:Map<Variable, Value[]>, variableList:
     var inferredEnv = new State.VariablesImpl<TupleType>();
     variableList.filter(v => !v.named).forEach(variable => {
             var type = variableValues.get(variable).reduce((t:TupleType, v:Value) =>
-                valueTypeConfig.types.lub(t, inferencer.getAscriber().ascribeType(v, [])), valueTypeConfig.types.bot);
+                valueTypeConfig.types.lub(t, inferencer.getAscriber().ascribeType(v, [util.format("VAR(%s)", VariableManager.variableToString(variable))])), valueTypeConfig.types.bot);
 
             if (TypeImpls.TupleAccess.isRecursiveReference(type) && type !== TypeImpls.constants.Top) {
                 throw new Error("Recursive references should have been resolved by now: " + TypeImpls.toPrettyString(type));
