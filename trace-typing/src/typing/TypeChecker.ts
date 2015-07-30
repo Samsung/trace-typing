@@ -603,7 +603,7 @@ class StatementMonitorVisitor implements TraceStatementVisitor<void> {
                     }
                     var matches = potentialMatches.filter(potentialMatch => {
                         var baseMatch = this.assignmentCompatibilityCheck(potentialMatch.base, base);
-                        if (!baseMatch) {
+                        if (!e.properties.isConstructorCall && !baseMatch) {
                             if (FIND_TYPE_ERROR_SOURCE) {
                                 console.log("Mismatch found for one function at base, expected %s, got %s", TypeImpls.toPrettyString(potentialMatch.base), TypeImpls.toPrettyString(base));
                             }
