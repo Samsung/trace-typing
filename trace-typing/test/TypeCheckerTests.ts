@@ -213,14 +213,11 @@ describe("TypeChecker unit tests", function () {
             }];
             var flowConfig = {flowInsensitiveVariables: false, contextInsensitiveVariables: false};
             var languages = ['coffeescript', 'typescript'];
-            var cases = ['Super', 'Sub', 'InstantiateSuper', 'InstantiateSub', 'CallSuperMethodThroughSuper', 'CallSubMethodThroughSub', 'CallSuperMethodThroughSub'];
+            var cases = ['Super', 'SubNoExports', 'Sub', 'InstantiateSuper', 'InstantiateSubNoExports', 'InstantiateSub', 'CallSuperMethodThroughSuper', 'CallSubMethodThroughSub', 'CallSuperMethodThroughSub'];
             configs.forEach(configAndName => describe(util.format("In configuration %s", configAndName.name), function () {
                 var config = configAndName.config;
                 languages.forEach(l => describe(l, function () {
                     cases.forEach(c => {
-                        if (!(c === 'Sub' && config === inferenceConfigs.simpleSubtypingWithUnion && l === 'typescript')) {
-                            return;
-                        }
                         it("Should handle " + c, function (done) {
                             testFile(util.format('fixtures/%s-hierarchy/%s.js', l, c), 0, config, done, flowConfig);
                         })
