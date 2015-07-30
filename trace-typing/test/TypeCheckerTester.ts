@@ -49,7 +49,7 @@ export function testTrace(err:any, trace:Trace, expectedErrorCount:number, infer
     }
 
     function isInterestingFile(fileName:string) {
-        return true || (fileName.indexOf("lib/XMLNode_orig_.js") !== -1 || fileName.indexOf("lib/XMLElement_orig_.js") !== -1);
+        return (fileName.indexOf("lib/xml2js_orig_.js") !== -1 || fileName.indexOf("lib/sax_orig_.js") !== -1);
     }
 
     try {
@@ -119,7 +119,7 @@ export function testTrace(err:any, trace:Trace, expectedErrorCount:number, infer
                         fileErrorCountOrder.forEach(file => {
                             console.log("%d errors in %s", fileErrorCounts.get(file), file);
                         });
-                        iidErrors.forEach(e => true || isInterestingFile(locationString(e)) ? console.log("%sError (kind:%s): %s", locationString(e), TypeChecker.ConstraintKinds[e.constraintKind], e.message) : undefined);
+                        iidErrors.forEach(e => isInterestingFile(locationString(e)) ? console.log("%sError (kind:%s): %s", locationString(e), TypeChecker.ConstraintKinds[e.constraintKind], e.message) : undefined);
                         iidWarnings.forEach(e => console.log("%sWarning (kind:%s): %s", locationString(e), TypeChecker.ConstraintKinds[e.constraintKind], e.message));
                     }
                     var sourceLocationErrors:SourceRelatedMessage[] = iidErrors.map(e => {
@@ -129,7 +129,7 @@ export function testTrace(err:any, trace:Trace, expectedErrorCount:number, infer
                             type: e.type
                         };
                     });
-                    var showInBrowser = false;
+                    var showInBrowser = true;
                     sourceLocationErrors = sourceLocationErrors.filter(e => isInterestingFile(e.sourceLocation.file));
                     if (showInBrowser && sourceLocationErrors.length > 0) {
                         explainer.displayMessagesInBrowser("Typechecking", sourceLocationErrors, innerDone);
@@ -143,7 +143,6 @@ export function testTrace(err:any, trace:Trace, expectedErrorCount:number, infer
                 innerDone();
             }
         });
-
     } catch (e) {
         done(e);
         throw e;

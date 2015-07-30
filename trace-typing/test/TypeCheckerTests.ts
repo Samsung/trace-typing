@@ -203,7 +203,7 @@ describe("TypeChecker unit tests", function () {
                 testFile('fixtures/xml2js_PrototypingExample4.js', 2 /* due to constructor call requiring .prototype on merged object ... */, config, done, flowConfig);
             });
         });
-        describe.only("Class hierarchies in transpiled code", function () {
+        describe("Class hierarchies in transpiled code", function () {
             var configs = [{
                 config: inferenceConfigs.simpleSubtypingWithUnion,
                 name: 'simpleSubtypingWithUnion'
@@ -280,7 +280,7 @@ function ignoreFile(file:string) {
     var isBigApp = bigApps.some(app => file.indexOf(app) !== -1);
     return is_JSON_NaN_bug || (onlyBigApps && !isBigApp) || (noBigApps && isBigApp);
 }
-describe("Type check traces and display table", function () {
+describe.only("Type check traces and display table", function () {
     var mode = 'RUN';
     //var mode = 'DISPLAY';
     //var mode = 'PIVOT';
@@ -298,7 +298,7 @@ describe("Type check traces and display table", function () {
             }
             var allTypes = [
                 [inferenceConfigs.fullIntersection, 'intersection']
-                , [inferenceConfigs.simpleSubtyping, 'simpleSubtyping']
+//                , [inferenceConfigs.simpleSubtyping, 'simpleSubtyping']
                 , [inferenceConfigs.simpleSubtypingWithUnion, 'simpleSubtypingWithUnion']
 //                , [inferenceConfigs.SJS, 'SJS']
             ];
